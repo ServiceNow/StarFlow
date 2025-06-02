@@ -1,0 +1,38 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "starflow"
+version = "2.2.0"
+requires-python = ">=3.11, <3.12"
+dependencies = [
+    "torch@https://download.pytorch.org/whl/cu124/torch-2.6.0%2Bcu124-cp311-cp311-linux_x86_64.whl",
+    "torchvision@https://download.pytorch.org/whl/cu124/torchvision-0.21.0%2Bcu124-cp311-cp311-linux_x86_64.whl",
+    "accelerate==1.6.0",
+    "backoff==2.2.1",
+    "beautifulsoup4==4.13.3",
+    "CairoSVG==2.7.1",
+    "datasets==3.5.0",
+    "editdistance==0.8.1",
+    "htmlmin==0.1.12",
+    "lxml==5.3.2",
+    "ninja==1.11.1.4",
+    "nltk==3.9.1",
+    "omegaconf==2.3.0",
+    "openai==1.70.0",
+    "pillow==11.1.0",
+    "pydot==3.0.4",
+    "scikit-learn==1.6.1",
+    "scipy==1.15.2",
+    "timeout-decorator==0.5.0",
+    "torchmetrics==1.7.0",
+    "tqdm==4.67.1",
+    "transformers==4.51.0",
+    "vllm==0.8.3",
+    "wandb==0.19.9",
+    "zss==1.2.0"
+]
+
+[tool.setuptools.packages.find]
+include = ["starflow*"]

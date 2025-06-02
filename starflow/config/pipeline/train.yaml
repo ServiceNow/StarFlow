@@ -1,0 +1,34 @@
+pipeline:
+  name: train
+  source_logging_dir: null
+  resume_overall_step: null
+  max_grad_norm: 1.0
+  num_warmup_steps: 50
+  num_steps_per_checkpoint: 500
+  num_epochs: 5
+  fsdp_plugin_kwargs:
+    sharding_strategy: FULL_SHARD
+    backward_prefetch: BACKWARD_PRE
+    cpu_offload: false
+    state_dict_type: FULL_STATE_DICT
+    limit_all_gathers: true
+    use_orig_params: true
+    sync_module_states: true
+    forward_prefetch: false
+    activation_checkpointing: true
+    cpu_ram_efficient_loading: true
+  accelerator_kwargs:
+    device_placement: true
+    mixed_precision: bf16
+    gradient_accumulation_steps: 2
+    cpu: false
+    log_with:
+      - wandb
+    step_scheduler_with_optimizer: true
+  adamw_optimizer_kwargs:
+    lr: 2e-5
+    betas:
+      - 0.95
+      - 0.999
+    weight_decay: 1.0e-06
+    eps: 1e-08

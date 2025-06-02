@@ -1,0 +1,15 @@
+model:
+  name: deepseek_vl2_small
+  class_path: starflow.model.vl_models.deepseek.DeepseekModel
+  init_kwargs:
+    pretrained_model_path: deepseek-ai/deepseek-vl2-small
+    torch_dtype: bfloat16
+    ignore_index: -100
+    max_length: 8192
+    max_new_tokens: 8192
+  source_logging_dir: null
+  train_language_model: true
+  train_vision_model: true
+  train_connector: true
+  generate_kwargs:
+    do_sample: false
