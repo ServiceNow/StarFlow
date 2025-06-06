@@ -36,7 +36,6 @@ conda activate starflow
 pip install --upgrade pip
 pip install --editable .
 pip install --no-build-isolation flash-attn==2.7.4.post1
-python -m nltk.downloader punkt_tab
 ```
 
 ## Training and Evaluation Guide
