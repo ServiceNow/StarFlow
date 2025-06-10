@@ -130,3 +130,14 @@ Pipelines are Python scripts that execute complete processes with datasets, metr
 - Evaluation pipeline: the pipeline for evaluating a model on a dataset with the applied metrics. It is implemented as [`starflow/pipeline/evaluate.py`](starflow/pipeline/evaluate.py), and its config file is [`starflow/config/pipeline/evaluate.yaml`](starflow/config/pipeline/evaluate.yaml).
 
 - API model evaluation pipeline: the pipeline for evaluating an API model on a dataset with the applied metrics. It is implemented as [`starflow/pipeline/evaluate_api.py`](starflow/pipeline/evaluate_api.py), and its config file is [`starflow/config/pipeline/evaluate_api.yaml`](starflow/config/pipeline/evaluate_api.yaml).
+
+## Citation
+
+```BibTeX
+@article{bechard2025starflow,
+  title={StarFlow: Generating Structured Workflow Outputs From Sketch Images},
+  author={Bechard, Patrice and Wang, Chao and Abaskohi, Amirhossein and Rodriguez, Juan and Pal, Christopher and Vazquez, David and Gella, Spandana and Rajeswar, Sai and Taslakian, Perouz},
+  journal={arXiv preprint arXiv:2503.21889},
+  year={2025}
+}
+```
