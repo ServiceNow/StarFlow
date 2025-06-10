@@ -29,7 +29,7 @@ source ~/.secret
 4. Install packages
 
 ```shell
-# for Llama, Qwen, and API models
+# for Llama, Qwen, Pixtral, and API models
 bash installer/default/install.sh
 # for Phi-3.5 model
 bash installer/phi35/install.sh
@@ -63,7 +63,7 @@ torchrun \
     pipeline_config_file=starflow/config/pipeline/evaluate.yaml
 ```
 
-3. Evaluation for Very Large Models (e.g. Llama-3.2-90B-Vision-Instruct)
+3. Evaluation for very large models (e.g. Llama-3.2-90B-Vision-Instruct)
 
 ```shell
 python \
@@ -73,7 +73,7 @@ python \
     pipeline_config_file=starflow/config/pipeline/evaluate.yaml
 ```
 
-4. Evaluation for API Models (e.g. GPT-4o)
+4. Evaluation for API models (e.g. GPT-4o)
 
 ```shell
 python \
@@ -82,6 +82,12 @@ python \
     model_config_file=starflow/config/model/gpt_4o.yaml \
     pipeline_config_file=starflow/config/pipeline/evaluate_api.yaml
 ```
+
+### Notes
+
+- Other models can be trained and evaluated by setting their config file path as the value of `model_config_file`.
+
+- The values in the involved config files should be set properly before running training and evaluation.
 
 ## Concept Introduction
 
