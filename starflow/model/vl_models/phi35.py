@@ -7,8 +7,8 @@ from starflow.model.vl_model import VLInput, VLModel
 import torch
 
 
-@dataclass(kw_only=True)
-class Phi35Input(VLInput):
+@dataclass
+class PhiInput(VLInput):
     input_ids: Tensor
     attention_mask: Tensor
     pixel_values: Tensor
@@ -34,7 +34,7 @@ class Phi35Input(VLInput):
         return self
 
 
-class Phi35Model(VLModel):
+class PhiModel(VLModel):
     def get_model_and_processor(self, **kwargs):
         pretrained_model_path = kwargs["pretrained_model_path"]
         torch_dtype = kwargs["torch_dtype"]
@@ -59,8 +59,7 @@ class Phi35Model(VLModel):
         self.max_length = max_length
         self.max_new_tokens = max_new_tokens
 
-    @property
-    def layer_classes(self):
+    def get_layer_classes(self):
         layer_classes = set()
         for layer in self.model.model.layers:
             layer_classes.add(layer.__class__)
@@ -72,19 +71,17 @@ class Phi35Model(VLModel):
             layer_classes.add(layer.__class__)
         return layer_classes
 
-    def freeze_model(
-        self,
-        train_language_model: bool,
-        train_vision_model: bool,
-        train_connector: bool,
-    ):
+    def requires_grad(self, **kwargs):
+        language_model_requires_grad = kwargs["language_model_requires_grad"]
+        vision_model_requires_grad = kwargs["vision_model_requires_grad"]
+        connector_requires_grad = kwargs["connector_requires_grad"]
         for param in self.model.parameters():
-            param.requires_grad = train_language_model
+            param.requires_grad = language_model_requires_grad
         for param in self.model.model.vision_embed_tokens.parameters():
             if param is not self.model.model.vision_embed_tokens.wte.weight:
-                param.requires_grad = train_vision_model
+                param.requires_grad = vision_model_requires_grad
         for param in self.model.model.vision_embed_tokens.img_projection.parameters():
-            param.requires_grad = train_connector
+            param.requires_grad = connector_requires_grad
 
     def preprocess(self, vl_example: VLExample, for_generate: bool):
         input_ids = []
@@ -153,7 +150,7 @@ class Phi35Model(VLModel):
             labels = torch.cat(labels, dim=1)[:, :truncation_length]
             if torch.all(labels == self.ignore_index).item():
                 labels[0, -1] = self.processor.tokenizer.eos_token_id
-        return Phi35Input(
+        return PhiInput(
             input_ids=input_ids,
             attention_mask=attention_mask,
             pixel_values=pixel_values,
@@ -161,7 +158,7 @@ class Phi35Model(VLModel):
             labels=labels,
         )
 
-    def collate_fn_inner(self, vl_inputs: list[VLInput]):
+    def collate_inner(self, vl_inputs: list[PhiInput]):
         input_ids = torch.nn.utils.rnn.pad_sequence(
             [vl_input.input_ids.squeeze(0) for vl_input in vl_inputs],
             batch_first=True,
@@ -179,7 +176,7 @@ class Phi35Model(VLModel):
             batch_first=True,
             padding_value=self.ignore_index,
         )
-        return Phi35Input(
+        return PhiInput(
             input_ids=input_ids,
             attention_mask=attention_mask,
             pixel_values=pixel_values,
@@ -187,7 +184,7 @@ class Phi35Model(VLModel):
             labels=labels,
         )
 
-    def forward(self, vl_input: VLInput):
+    def forward(self, vl_input: PhiInput):
         return self.model(
             input_ids=vl_input.input_ids,
             attention_mask=vl_input.attention_mask,
@@ -198,7 +195,7 @@ class Phi35Model(VLModel):
             use_cache=False,
         ).loss
 
-    def generate_inner(self, vl_input: VLInput, **kwargs):
+    def generate_inner(self, vl_input: PhiInput, **kwargs):
         output_ids = self.model.generate(
             input_ids=vl_input.input_ids,
             attention_mask=vl_input.attention_mask,

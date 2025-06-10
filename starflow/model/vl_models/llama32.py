@@ -7,7 +7,7 @@ from starflow.model.vl_model import VLInput, VLModel
 import torch
 
 
-@dataclass(kw_only=True)
+@dataclass
 class LlamaInput(VLInput):
     input_ids: Tensor
     attention_mask: Tensor
@@ -58,29 +58,26 @@ class LlamaModel(VLModel):
         self.max_length = max_length
         self.max_new_tokens = max_new_tokens
 
-    @property
-    def layer_classes(self):
+    def get_layer_classes(self):
         layer_classes = set()
-        for layer in self.model.language_model.model.layers:
+        for layer in self.model.model.language_model.layers:
             layer_classes.add(layer.__class__)
-        for layer in self.model.vision_model.transformer.layers:
+        for layer in self.model.model.vision_model.transformer.layers:
             layer_classes.add(layer.__class__)
-        for layer in self.model.vision_model.global_transformer.layers:
+        for layer in self.model.model.vision_model.global_transformer.layers:
             layer_classes.add(layer.__class__)
         return layer_classes
 
-    def freeze_model(
-        self,
-        train_language_model: bool,
-        train_vision_model: bool,
-        train_connector: bool,
-    ):
-        for param in self.model.language_model.parameters():
-            param.requires_grad = train_language_model
-        for param in self.model.vision_model.parameters():
-            param.requires_grad = train_vision_model
-        for param in self.model.multi_modal_projector.parameters():
-            param.requires_grad = train_connector
+    def requires_grad(self, **kwargs):
+        language_model_requires_grad = kwargs["language_model_requires_grad"]
+        vision_model_requires_grad = kwargs["vision_model_requires_grad"]
+        connector_requires_grad = kwargs["connector_requires_grad"]
+        for param in self.model.parameters():
+            param.requires_grad = language_model_requires_grad
+        for param in self.model.model.vision_model.parameters():
+            param.requires_grad = vision_model_requires_grad
+        for param in self.model.model.multi_modal_projector.parameters():
+            param.requires_grad = connector_requires_grad
 
     def preprocess(self, vl_example: VLExample, for_generate: bool):
         input_ids = []
@@ -182,7 +179,7 @@ class LlamaModel(VLModel):
             labels=labels,
         )
 
-    def collate_fn_inner(self, vl_inputs: list[VLInput]):
+    def collate_inner(self, vl_inputs: list[LlamaInput]):
         input_ids = torch.nn.utils.rnn.pad_sequence(
             [vl_input.input_ids.squeeze(0) for vl_input in vl_inputs],
             batch_first=True,
@@ -240,7 +237,7 @@ class LlamaModel(VLModel):
             labels=labels,
         )
 
-    def forward(self, vl_input: VLInput):
+    def forward(self, vl_input: LlamaInput):
         return self.model(
             input_ids=vl_input.input_ids,
             attention_mask=vl_input.attention_mask,
@@ -253,7 +250,7 @@ class LlamaModel(VLModel):
             use_cache=False,
         ).loss
 
-    def generate_inner(self, vl_input: VLInput, **kwargs):
+    def generate_inner(self, vl_input: LlamaInput, **kwargs):
         output_ids = self.model.generate(
             input_ids=vl_input.input_ids,
             attention_mask=vl_input.attention_mask,

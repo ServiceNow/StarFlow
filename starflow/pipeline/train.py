@@ -49,14 +49,8 @@ def train():
     model_checkpoint_file = load_model_checkpoint(config, vl_model)
     if model_checkpoint_file is not None:
         accelerator.print(f"Loaded model checkpoint from {model_checkpoint_file}")
-    vl_model.freeze_model(
-        config.model.train_language_model,
-        config.model.train_vision_model,
-        config.model.train_connector,
-    )
-    accelerator.print(f"Train language model: {config.model.train_language_model}")
-    accelerator.print(f"Train vision model: {config.model.train_vision_model}")
-    accelerator.print(f"Train connector: {config.model.train_connector}")
+    vl_model.requires_grad(**OmegaConf.to_container(config.model.requires_grad_kwargs))
+    accelerator.print(f"Requires gradient: {str(config.model.requires_grad_kwargs)}")
     accelerator.print(f"Num processes: {accelerator.num_processes}")
     accelerator.print(
         f"Gradient accumulation steps: {accelerator.gradient_accumulation_steps}"
@@ -67,7 +61,7 @@ def train():
     )
     accelerator.print(f"Train dataset size: {len(train_vl_dataset)}")
     train_data_loader = train_vl_dataset.get_data_loader(
-        vl_model.collate_fn,
+        vl_model.collate,
         **OmegaConf.to_container(config.dataset.train.data_loader_kwargs),
     )
     train_batch_size_per_process = train_data_loader.batch_size
@@ -84,7 +78,7 @@ def train():
     )
     accelerator.print(f"Validate dataset size: {len(validate_vl_dataset)}")
     validate_data_loader = validate_vl_dataset.get_data_loader(
-        vl_model.collate_fn,
+        vl_model.collate,
         **OmegaConf.to_container(config.dataset.validate.data_loader_kwargs),
     )
     validate_batch_size_per_process = validate_data_loader.batch_size

@@ -3,22 +3,22 @@ requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "starflow"
-version = "2.2.0"
+name = "StarFlow"
+version = "1.0.0"
 requires-python = ">=3.11, <3.12"
 dependencies = [
-    "torch@https://download.pytorch.org/whl/cu124/torch-2.6.0%2Bcu124-cp311-cp311-linux_x86_64.whl",
-    "torchvision@https://download.pytorch.org/whl/cu124/torchvision-0.21.0%2Bcu124-cp311-cp311-linux_x86_64.whl",
-    "accelerate==1.6.0",
-    "backoff==2.2.1",
-    "datasets==3.5.0",
-    "omegaconf==2.3.0",
-    "openai==1.70.0",
-    "pillow==11.1.0",
-    "tqdm==4.67.1",
-    "transformers==4.51.0",
-    "wandb==0.19.9",
-    "zss==1.2.0"
+    "accelerate",
+    "backoff",
+    "datasets",
+    "omegaconf",
+    "openai",
+    "pillow",
+    "torch",
+    "torchvision",
+    "tqdm",
+    "transformers",
+    "wandb",
+    "zss"
 ]
 
 [tool.setuptools.packages.find]

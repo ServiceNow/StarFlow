@@ -77,7 +77,7 @@ def get_accelerator(config: DictConfig, logging_dir: str, vl_model: VLModel):
     fsdp_plugin = None
     if hasattr(config.pipeline, "fsdp_plugin_kwargs"):
         auto_wrap_policy = functools.partial(
-            _module_wrap_policy, module_classes=vl_model.layer_classes
+            _module_wrap_policy, module_classes=vl_model.get_layer_classes()
         )
         if config.pipeline.fsdp_plugin_kwargs.activation_checkpointing:
             apply_activation_checkpointing(

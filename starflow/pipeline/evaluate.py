@@ -48,7 +48,7 @@ def evaluate():
         vl_model = vl_model.to(accelerator.device)
     else:
         no_split_module_classes = [
-            layer_class.__name__ for layer_class in vl_model.layer_classes
+            layer_class.__name__ for layer_class in vl_model.get_layer_classes()
         ]
         max_memory = get_balanced_memory(
             vl_model, no_split_module_classes=no_split_module_classes

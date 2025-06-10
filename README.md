@@ -29,13 +29,14 @@ source ~/.secret
 4. Install packages
 
 ```shell
-conda init
-source ~/.bashrc
-conda create --name starflow --yes python=3.11
-conda activate starflow
-pip install --upgrade pip
-pip install --editable .
-pip install --no-build-isolation flash-attn==2.7.4.post1
+# for Llama, Qwen, and API models
+bash installer/default/install.sh
+# for Phi-3.5 model
+bash installer/phi35/install.sh
+# for Phi-4 model
+bash installer/phi4/install.sh
+# for DeepSeek models
+bash installer/deepseek/install.sh
 ```
 
 ## Training and Evaluation Guide
@@ -84,7 +85,7 @@ python \
 
 ## Concept Introduction
 
-StarFlow is a framework for training and evaluating vision-language models. It consists of four types of components, namely datasets, metrics, models, and pipelines.
+StarFlow consists of four types of components: datasets, metrics, models, and pipelines.
 
 ### Datasets
 
@@ -92,19 +93,19 @@ Datasets provide vision-language data for training and evaluation. They are enca
 
 When instantiating a dataset, its data examples are first loaded from either Hugging Face or local storage, and then encapsulated as [`VLExample`](starflow/dataset/vl_dataset.py).
 
-Each dataset comes with a config file, which specifies the settings for instantiating and using the dataset. For example, the config file for `ServiceNow/BigDocs-Sketch2Flow` is [`starflow/config/dataset/bigdocs_sketch2flow.yaml`](starflow/config/dataset/bigdocs_sketch2flow.yaml).
+Each dataset comes with a config file, which specifies the settings for instantiating and using the dataset. For example, the config file for `BigDocs-7.5M` is [`starflow/config/dataset/bigdocs_75m.yaml`](starflow/config/dataset/bigdocs_75m.yaml).
 
 ### Metrics
 
-Metrics compute performance numbers of models on datasets. They are encapsulated as sub-classes of [`VLMetric`](starflow/dataset/metric/vl_metric.py). For example, the `Flow Similarity` metric is encapsulated as [`FlowSimilarityMetric`](starflow/dataset/metric/vl_metrics/flow_similarity.py).
+Metrics compute performance numbers of models on datasets. They are encapsulated as sub-classes of [`VLMetric`](starflow/dataset/metric/vl_metric.py). For example, the `ROUGE` metric is encapsulated as [`ROUGEMetric`](starflow/dataset/metric/vl_metrics/rouge.py).
 
 When using a metric to evaluate a model on a dataset, the metric compares the outputs of the model with the corresponding ground truths in the dataset and thereby obtains the performance numbers.
 
-Each metric is applied to one or more datasets, and the settings for instantiating and using the metric are specifed in the config files of the target datasets. For example, the settings for `FlowSimilarityMetric` are specified in the config file of `ServiceNow/BigDocs-Sketch2Flow` ([`starflow/config/dataset/bigdocs_sketch2flow.yaml`](starflow/config/dataset/bigdocs_sketch2flow.yaml)).
+Each metric is applied to one or more datasets, and the settings for instantiating and using the metric are specifed in the config files of the target datasets. For example, the settings for `ROUGE` are specified in the config file of `BigDocs-Bench-Chart2Caption` ([`starflow/config/dataset/bigdocs_bench_chart2caption.yaml`](starflow/config/dataset/bigdocs_bench_chart2caption.yaml)).
 
 ### Models
 
-Models generate textual outputs given vision-language inputs from datasets. They are encapsulated as sub-classes of [`VLModel`](starflow/model/vl_model.py), and their inputs are encapsulated as sub-classes of [`VLInput`](starflow/model/vl_model.py). For example, the `Llama-3.2-Vision-Instruct` models are encapsulated as [`LlamaModel`](starflow/model/vl_models/llama.py), and their inputs are encapsulated as [`LlamaInput`](starflow/model/vl_models/llama.py).
+Models generate textual outputs given vision-language inputs from datasets. They are encapsulated as sub-classes of [`VLModel`](starflow/model/vl_model.py), and their inputs are encapsulated as sub-classes of [`VLInput`](starflow/model/vl_model.py). For example, the `Llama-3.2-Vision-Instruct` models are encapsulated as [`LlamaModel`](starflow/model/vl_models/llama32.py), and their inputs are encapsulated as [`LlamaInput`](starflow/model/vl_models/llama32.py).
 
 When training a model, a cross-entropy loss is obtained from the forward pass of the model, which is then optimized in the backward pass through gradient decent. When evaluating a model, the textual outputs of the model are processed by the applied metrics to compute performance numbers.
 
