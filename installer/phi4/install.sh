@@ -7,4 +7,3 @@ pip install torch==2.6.0 torchvision==0.21.0 --index-url https://download.pytorc
 pip install --no-build-isolation flash-attn==2.7.4.post1
 pip install peft==0.13.2 transformers==4.48.2
 pip install --editable .
-python -m nltk.downloader punkt_tab
