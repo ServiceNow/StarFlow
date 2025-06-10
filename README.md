@@ -9,7 +9,7 @@ git clone https://github.com/ServiceNow/StarFlow.git
 cd StarFlow
 ```
 
-2. Edit `~/.secret`
+2. Edit `~/.secret` (create a new file if it does not exist)
 
 ```shell
 export HF_TOKEN=<HF_TOKEN>
@@ -19,7 +19,7 @@ export OUTPUT_DIR=<OUTPUT_DIR>
 ...
 ```
 
-3. Edit `~/.bashrc`
+3. Edit `~/.bashrc` (create a new file if it does not exist)
 
 ```shell
 source ~/.secret
@@ -93,15 +93,15 @@ Datasets provide vision-language data for training and evaluation. They are enca
 
 When instantiating a dataset, its data examples are first loaded from either Hugging Face or local storage, and then encapsulated as [`VLExample`](starflow/dataset/vl_dataset.py).
 
-Each dataset comes with a config file, which specifies the settings for instantiating and using the dataset. For example, the config file for `BigDocs-7.5M` is [`starflow/config/dataset/bigdocs_75m.yaml`](starflow/config/dataset/bigdocs_75m.yaml).
+Each dataset comes with a config file, which specifies the settings for instantiating and using the dataset. For example, the config file for `ServiceNow/BigDocs-Sketch2Flow` is [`starflow/config/dataset/bigdocs_sketch2flow.yaml`](starflow/config/dataset/bigdocs_sketch2flow.yaml).
 
 ### Metrics
 
-Metrics compute performance numbers of models on datasets. They are encapsulated as sub-classes of [`VLMetric`](starflow/dataset/metric/vl_metric.py). For example, the `ROUGE` metric is encapsulated as [`ROUGEMetric`](starflow/dataset/metric/vl_metrics/rouge.py).
+Metrics compute performance numbers of models on datasets. They are encapsulated as sub-classes of [`VLMetric`](starflow/dataset/metric/vl_metric.py). For example, the `Flow Similarity` metric is encapsulated as [`FlowSimilarityMetric`](starflow/dataset/metric/vl_metrics/flow_similarity.py).
 
 When using a metric to evaluate a model on a dataset, the metric compares the outputs of the model with the corresponding ground truths in the dataset and thereby obtains the performance numbers.
 
-Each metric is applied to one or more datasets, and the settings for instantiating and using the metric are specifed in the config files of the target datasets. For example, the settings for `ROUGE` are specified in the config file of `BigDocs-Bench-Chart2Caption` ([`starflow/config/dataset/bigdocs_bench_chart2caption.yaml`](starflow/config/dataset/bigdocs_bench_chart2caption.yaml)).
+Each metric is applied to one or more datasets, and the settings for instantiating and using the metric are specifed in the config files of the target datasets. For example, the settings for `FlowSimilarityMetric` are specified in the config file of `ServiceNow/BigDocs-Sketch2Flow` ([`starflow/config/dataset/bigdocs_sketch2flow.yaml`](starflow/config/dataset/bigdocs_sketch2flow.yaml)).
 
 ### Models
 
