@@ -41,6 +41,8 @@ bash installer/deepseek/install.sh
 
 ## Training and Evaluation Guide
 
+### Commands
+
 1. Training
 
 ```shell
@@ -85,9 +87,9 @@ python \
 
 ### Notes
 
-- Other models can be trained and evaluated by setting their config file path as the value of `model_config_file`.
+1. Other models can be trained and evaluated by setting their config file path as the value of `model_config_file`.
 
-- The values in the involved config files should be set properly before running training and evaluation.
+2. The values in the involved config files should be set properly before running training and evaluation.
 
 ## Concept Introduction
 
