@@ -119,7 +119,7 @@ When training a model, a cross-entropy loss is obtained from the forward pass of
 
 Each model comes with a config file, which specifies the settings for instantiating and using the model. For example, the config file for `Llama-3.2-11B-Vision-Instruct` is [`starflow/config/model/llama_32_11b.yaml`](starflow/config/model/llama_32_11b.yaml).
 
-A special category of models is API models, which can only be used through API calls. They are encapsulated as sub-classes of [`VLAPIModel`](starflow/model/vl_api_model.py), and each of them comes with a config file. For example, the OpenRouter-routed `GPT-4o` model is encapsulated as [`OpenRouterAPIModel`](starflow/model/vl_api_models/open_router.py), and its config file is [`starflow/config/model/gpt_4o.yaml`](starflow/config/model/gpt_4o.yaml). API models cannot be trained, but can still be evaluated.
+A special category of models is API models, which can only be used through API calls. They are encapsulated as sub-classes of [`VLAPIModel`](starflow/model/vl_api_model.py), and each of them comes with a config file. For example, the OpenRouter-routed `GPT-4o` model is encapsulated as [`OpenRouterAPIModel`](starflow/model/vl_api_models/openrouter.py), and its config file is [`starflow/config/model/gpt_4o.yaml`](starflow/config/model/gpt_4o.yaml). API models cannot be trained, but can still be evaluated.
 
 ### Pipelines
 

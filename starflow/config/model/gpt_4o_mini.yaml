@@ -1,6 +1,6 @@
 model:
   name: gpt_4o_mini
-  class_path: starflow.model.vl_api_models.open_router.OpenRouterAPIModel
+  class_path: starflow.model.vl_api_models.openrouter.OpenRouterAPIModel
   init_kwargs:
     base_url: https://openrouter.ai/api/v1
     model_id: openai/gpt-4o-mini
