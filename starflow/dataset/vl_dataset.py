@@ -7,7 +7,7 @@ from typing import Callable
 import os
 
 
-@dataclass(kw_only=True)
+@dataclass
 class VLExample:
     identifier: str
     images: list[Image.Image]
@@ -25,6 +25,7 @@ class VLDataset(ABC, Dataset):
         is_local = kwargs["is_local"]
         filter_fn = kwargs["filter_fn"]
         min_image_size = kwargs["min_image_size"]
+        max_image_size = kwargs["max_image_size"]
         dummy_image_size = kwargs["dummy_image_size"]
         if not isinstance(tasks, (list, tuple)):
             tasks = [tasks]
@@ -49,6 +50,7 @@ class VLDataset(ABC, Dataset):
             )
         self.dataset = dataset
         self.min_image_size = min_image_size
+        self.max_image_size = max_image_size
         self.dummy_image_size = dummy_image_size
         self.post_init(**kwargs)
 
@@ -79,6 +81,7 @@ class VLDataset(ABC, Dataset):
             assert len(images) != 0
             for image in images:
                 assert min(image.size) >= self.min_image_size
+                assert max(image.size) <= self.max_image_size
             assert len(queries) == len(annotations) != 0
         except:
             images = [Image.new("RGB", (self.dummy_image_size, self.dummy_image_size))]

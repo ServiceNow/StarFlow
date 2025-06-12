@@ -10,7 +10,8 @@ dataset:
         - train
       is_local: false
       filter_fn: null
-      min_image_size: 10
+      min_image_size: 16
+      max_image_size: 4096
       dummy_image_size: 224
     data_loader_kwargs:
       batch_size: 2
@@ -26,7 +27,8 @@ dataset:
         - val
       is_local: false
       filter_fn: null
-      min_image_size: 10
+      min_image_size: 16
+      max_image_size: 4096
       dummy_image_size: 224
     data_loader_kwargs:
       batch_size: 2
@@ -42,7 +44,8 @@ dataset:
         - test
       is_local: false
       filter_fn: null
-      min_image_size: 10
+      min_image_size: 16
+      max_image_size: 4096
       dummy_image_size: 224
     metrics:
       - class_path: starflow.dataset.metric.vl_metrics.flow_similarity.FlowSimilarityMetric
