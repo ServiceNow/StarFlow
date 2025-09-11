@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <!-- Document Meta -->
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>StarFlow — Generating Structured Workflow Outputs From Sketch Images</title>
+
+  <!-- Primary Meta Tags -->
+  <meta name="title" content="StarFlow: Generating Structured Workflow Outputs From Sketch Images - Bechard, Wang, Abaskohi, Rodriguez, Pal, Vazquez, Gella, Rajeswar, Taslakian" />
+  <meta name="description" content="StarFlow uses vision–language models to convert hand-drawn or digital workflow sketches into structured, executable workflows. We introduce the BigDocs-Sketch2Flow dataset and fine-tuned open-weight VLMs that outperform larger closed models on this task." />
+  <meta name="keywords" content="StarFlow, sketch-to-workflow, vision-language models, diagram understanding, structured output, workflow automation, flowchart parsing, program synthesis, low-code, enterprise automation, ServiceNow Research" />
+  <meta name="author" content="Patrice Bechard, Chao Wang, Amirhossein Abaskohi, Juan Rodriguez, Christopher Pal, David Vazquez, Spandana Gella, Sai Rajeswar, Perouz Taslakian" />
+  <meta name="robots" content="index, follow" />
+  <meta name="language" content="English" />
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="article" />
+  <meta property="og:site_name" content="ServiceNow Research" />
+  <meta property="og:title" content="StarFlow: Generating Structured Workflow Outputs From Sketch Images" />
+  <meta property="og:description" content="Convert sketches and diagrams into structured, executable workflows with fine-tuned VLMs and the BigDocs-Sketch2Flow dataset." />
+  <meta property="og:url" content="https://starflow.github.io/" />
+  <meta property="og:image" content="https://starflow.github.io/static/images/social_preview.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:image:alt" content="StarFlow — Sketches to Workflows" />
+  <meta property="article:published_time" content="2025-03-27T00:00:00.000Z" />
+  <meta property="article:author" content="Patrice Bechard" />
+  <meta property="article:section" content="Research" />
+  <meta property="article:tag" content="vision-language models" />
+  <meta property="article:tag" content="workflow automation" />
+
+  <!-- Twitter -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:site" content="@ServiceNow" />
+  <meta name="twitter:creator" content="@patricebechard" />
+  <meta name="twitter:title" content="StarFlow: Generating Structured Workflow Outputs From Sketch Images" />
+  <meta name="twitter:description" content="VLMs that turn sketches into structured workflows. Dataset + fine-tuned models released." />
+  <meta name="twitter:image" content="https://starflow.github.io/static/images/social_preview.png" />
+  <meta name="twitter:image:alt" content="StarFlow — Sketches to Workflows" />
+
+  <!-- Academic/Research Specific -->
+  <meta name="citation_title" content="StarFlow: Generating Structured Workflow Outputs From Sketch Images" />
+  <meta name="citation_author" content="Bechard, Patrice" />
+  <meta name="citation_author" content="Wang, Chao" />
+  <meta name="citation_author" content="Abaskohi, Amirhossein" />
+  <meta name="citation_author" content="Rodriguez, Juan" />
+  <meta name="citation_author" content="Pal, Christopher" />
+  <meta name="citation_author" content="Vazquez, David" />
+  <meta name="citation_author" content="Gella, Spandana" />
+  <meta name="citation_author" content="Rajeswar, Sai" />
+  <meta name="citation_author" content="Taslakian, Perouz" />
+  <meta name="citation_publication_date" content="2025" />
+  <meta name="citation_conference_title" content="arXiv preprint" />
+  <meta name="citation_pdf_url" content="https://arxiv.org/pdf/2503.21889" />
+
+  <!-- Additional SEO / PWA -->
+  <meta name="theme-color" content="#2563eb" />
+  <meta name="msapplication-TileColor" content="#2563eb" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+
+  <!-- Preconnects -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="preconnect" href="https://ajax.googleapis.com" />
+  <link rel="preconnect" href="https://documentcloud.adobe.com" />
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" />
+  <link rel="preconnect" href="https://cdnjs.cloudflare.com" />
+
+  <!-- Icons -->
+  <link rel="icon" type="image/x-icon" href="static/images/dizzy_star.png" />
+  <link rel="apple-touch-icon" href="static/images/dizzy_star.png" />
+
+  <!-- Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <!-- Critical CSS -->
+  <link rel="stylesheet" href="static/css/bulma.min.css" />
+  <link rel="stylesheet" href="static/css/index.css" />
+
+  <!-- Non-critical CSS (preload + noscript fallback) -->
+  <link rel="preload" href="static/css/bulma-carousel.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'" />
+  <link rel="preload" href="static/css/bulma-slider.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'" />
+  <link rel="preload" href="static/css/fontawesome.all.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'" />
+  <link rel="preload" href="https://cdn.jsdelivr.net/gh/jpswalsh/academicons@1/css/academicons.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'" />
+  <noscript>
+    <link rel="stylesheet" href="static/css/bulma-carousel.min.css" />
+    <link rel="stylesheet" href="static/css/bulma-slider.min.css" />
+    <link rel="stylesheet" href="static/css/fontawesome.all.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/jpswalsh/academicons@1/css/academicons.min.css" />
+  </noscript>
+
+  <!-- JS (deferred) -->
+  <script defer src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+  <script defer src="https://documentcloud.adobe.com/view-sdk/main.js"></script>
+  <script defer src="static/js/fontawesome.all.min.js"></script>
+  <script defer src="static/js/bulma-carousel.min.js"></script>
+  <script defer src="static/js/bulma-slider.min.js"></script>
+  <script defer src="static/js/index.js"></script>
+
+  <!-- Highlight.js (Python only; BibTeX disabled via nohighlight) -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css" />
+  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/python.min.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      if (window.hljs) {
+        hljs.configure({ languages: ['python'] });
+        hljs.highlightAll();
+      }
+    });
+  </script>
+
+  <!-- Structured Data: Paper -->
+  <script type="application/ld+json">
+  {
+    "@context":"https://schema.org",
+    "@type":"ScholarlyArticle",
+    "headline":"StarFlow: Generating Structured Workflow Outputs From Sketch Images",
+    "description":"Vision–language models that convert hand-drawn or digital workflow sketches into structured, executable workflows. Includes the BigDocs-Sketch2Flow dataset and fine-tuned open-weight models.",
+    "author":[
+      {"@type":"Person","name":"Patrice Bechard","affiliation":{"@type":"Organization","name":"ServiceNow Research"}},
+      {"@type":"Person","name":"Chao Wang","affiliation":{"@type":"Organization","name":"ServiceNow Research"}},
+      {"@type":"Person","name":"Amirhossein Abaskohi","affiliation":{"@type":"Organization","name":"ServiceNow Research"}},
+      {"@type":"Person","name":"Juan Rodriguez","affiliation":{"@type":"Organization","name":"ServiceNow Research"}},
+      {"@type":"Person","name":"Christopher Pal","affiliation":{"@type":"Organization","name":"ServiceNow Research"}},
+      {"@type":"Person","name":"David Vazquez","affiliation":{"@type":"Organization","name":"ServiceNow Research"}},
+      {"@type":"Person","name":"Spandana Gella","affiliation":{"@type":"Organization","name":"ServiceNow Research"}},
+      {"@type":"Person","name":"Sai Rajeswar","affiliation":{"@type":"Organization","name":"ServiceNow Research"}},
+      {"@type":"Person","name":"Perouz Taslakian","affiliation":{"@type":"Organization","name":"ServiceNow Research"}}
+    ],
+    "datePublished":"2025-03-27",
+    "publisher":{"@type":"Organization","name":"arXiv"},
+    "url":"https://starflow.github.io/",
+    "image":"https://starflow.github.io/static/images/social_preview.png",
+    "keywords":["StarFlow","sketch-to-workflow","vision-language models","diagram understanding","structured output","workflow automation","flowchart parsing","program synthesis","low-code","enterprise automation"],
+    "isAccessibleForFree":true,
+    "license":"https://creativecommons.org/licenses/by/4.0/",
+    "mainEntity":{"@type":"WebPage","@id":"https://starflow.github.io/"},
+    "sameAs":[
+      "https://arxiv.org/abs/2503.21889",
+      "https://www.servicenow.com/blogs/2025/starflow-ai-turns-sketches-into-workflows",
+      "https://github.com/ServiceNow/StarFlow"
+    ]
+  }
+  </script>
+
+  <!-- Structured Data: Organization -->
+  <script type="application/ld+json">
+  {
+    "@context":"https://schema.org",
+    "@type":"Organization",
+    "name":"ServiceNow Research",
+    "url":"https://www.servicenow.com/research",
+    "logo":"https://starflow.github.io/static/images/dizzy_star.png",
+    "sameAs":[
+      "https://twitter.com/ServiceNow",
+      "https://github.com/ServiceNow"
+    ]
+  }
+  </script>
+</head>
+<body>
+  <!-- Scroll to Top -->
+  <button class="scroll-to-top" onclick="scrollToTop()" title="Scroll to top" aria-label="Scroll to top">
+    <i class="fas fa-chevron-up" aria-hidden="true"></i>
+  </button>
+
+  <main id="main-content">
+    <!-- Hero -->
+    <section class="hero">
+      <div class="hero-body">
+        <div class="container is-max-widescreen">
+          <div class="columns is-centered">
+            <div class="column has-text-centered">
+              <h1 class="title is-1 publication-title">💫 StarFlow: Generating Structured Workflow Outputs From Sketch Images</h1>
+
+              <div class="is-size-5 publication-authors">
+                <span class="author-block">Patrice Bechard</span>,
+                <span class="author-block">Chao Wang</span>,
+                <span class="author-block">Amirhossein Abaskohi</span>,
+                <span class="author-block">Juan Rodriguez</span>,
+                <span class="author-block">Christopher Pal</span>,
+                <span class="author-block">David Vazquez</span>,
+                <span class="author-block">Spandana Gella</span>,
+                <span class="author-block">Sai Rajeswar</span>,
+                <span class="author-block">Perouz Taslakian</span>
+              </div>
+
+              <div class="is-size-5 publication-authors">
+                <span class="author-block">ServiceNow Research</span>
+              </div>
+
+              <div class="publication-links">
+                <span class="link-block">
+                  <a href="https://arxiv.org/pdf/2503.21889" target="_blank" rel="noopener" class="external-link button is-normal is-rounded is-dark">
+                    <span class="icon"><i class="fas fa-file-pdf" aria-hidden="true"></i></span><span>Paper</span>
+                  </a>
+                </span>
+                <span class="link-block">
+                  <a href="https://arxiv.org/abs/2503.21889" target="_blank" rel="noopener" class="external-link button is-normal is-rounded is-dark">
+                    <span class="icon"><i class="ai ai-arxiv" aria-hidden="true"></i></span><span>arXiv</span>
+                  </a>
+                </span>
+                <span class="link-block">
+                  <a href="https://www.servicenow.com/blogs/2025/starflow-ai-turns-sketches-into-workflows" target="_blank" rel="noopener" class="external-link button is-normal is-rounded is-dark">
+                    <span class="icon"><i class="fas fa-newspaper" aria-hidden="true"></i></span><span>Blog</span>
+                  </a>
+                </span>
+                <span class="link-block">
+                  <a href="https://github.com/ServiceNow/StarFlow" target="_blank" rel="noopener" class="external-link button is-normal is-rounded is-dark">
+                    <span class="icon"><i class="fab fa-github" aria-hidden="true"></i></span><span>Code</span>
+                  </a>
+                </span>
+                <span class="link-block">
+                  <a href="https://huggingface.co/datasets/ServiceNow/BigDocs-Sketch2Flow" target="_blank" rel="noopener" class="external-link button is-normal is-rounded is-dark">
+                    <span class="icon"><i class="fas fa-database" aria-hidden="true"></i></span><span>Dataset</span>
+                  </a>
+                </span>
+                <span class="link-block">
+                  <a href="https://huggingface.co/collections/ServiceNow/starflow-68c2ed58b119872e12466289" target="_blank" rel="noopener" class="external-link button is-normal is-rounded is-dark">
+                    <span class="icon"><i class="fas fa-robot" aria-hidden="true"></i></span><span>Models</span>
+                  </a>
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Teaser Video -->
+    <section class="hero teaser" style="margin-top:0;">
+      <div class="container is-max-widescreen">
+        <div class="hero-body">
+          <video id="tree" autoplay controls muted loop height="100%" preload="metadata" aria-label="StarFlow demo video">
+            <source src="static/videos/starflow_demo.mp4" type="video/mp4" />
+          </video>
+          <div class="content has-text-justified">
+            StarFlow converts sketches and diagrams into structured workflows using fine-tuned vision–language models and a purpose-built dataset.
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Abstract -->
+    <section class="section hero is-light">
+      <div class="container is-max-widescreen">
+        <div class="columns is-centered has-text-centered">
+          <div class="column is-full">
+            <h2 class="title is-3">Abstract</h2>
+            <div class="content has-text-justified">
+              <p>
+                Workflows are a fundamental component of automation in enterprise platforms. Building them can be complex and
+                often requires manual configuration through low-code or visual tools. We explore using vision–language models
+                (VLMs) to automatically generate structured workflows from visual inputs—hand-drawn sketches and
+                computer-generated diagrams. We introduce <em>StarFlow</em>, a framework for this task, curate a diverse dataset
+                of workflow diagrams (synthetic, manually annotated, and real-world), and fine-tune multiple VLMs. Our results
+                show that fine-tuning significantly enhances structured workflow generation, outperforming larger
+                general-purpose models on this task.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Dataset -->
+    <section class="section hero is-light">
+      <div class="container is-max-widescreen">
+        <div class="columns is-centered has-text-centered">
+          <div class="column is-full">
+            <h2 class="title is-3">Dataset</h2>
+            <div class="content has-text-justified">
+              <p>
+                We build a diverse dataset of workflow diagrams, spanning synthetic, human-annotated, and real-world samples,
+                to enhance training and evaluation. Below, we show the distribution of the dataset across splits and how the
+                dataset was constructed.
+              </p>
+              <div class="has-text-centered" style="margin:1rem 0;">
+                <a href="https://huggingface.co/datasets/ServiceNow/BigDocs-Sketch2Flow"
+                   target="_blank" rel="noopener"
+                   class="external-link button is-normal is-rounded is-dark">
+                  <span class="icon"><i class="fas fa-database" aria-hidden="true"></i></span>
+                  <span>Dataset 🤗</span>
+                </a>
+              </div>
+
+              <!-- Dataset table -->
+              <div style="overflow-x:auto;">
+                <table class="table is-bordered is-striped is-hoverable is-fullwidth">
+                  <thead>
+                    <tr>
+                      <th>Source</th>
+                      <th>Train</th>
+                      <th>Valid</th>
+                      <th>Test</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr><td>Synthetic</td><td>12,376</td><td>1,000</td><td>1,000</td></tr>
+                    <tr><td>Manual</td><td>3,035</td><td>333</td><td>865</td></tr>
+                    <tr><td>Digital</td><td>2,613</td><td>241</td><td>701</td></tr>
+                    <tr><td>Whiteboard</td><td>484</td><td>40</td><td>46</td></tr>
+                    <tr><td>User Interface</td><td>373</td><td>116</td><td>87</td></tr>
+                    <tr>
+                      <td><strong>Total</strong></td>
+                      <td><strong>18,881</strong></td>
+                      <td><strong>1,730</strong></td>
+                      <td><strong>2,699</strong></td>
+                    </tr>
+                  </tbody>
+                </table>
+                <p class="has-text-centered is-size-6">
+                  <em>Dataset distribution across splits. Samples are collected from synthetic, manual, digital, whiteboard, and UI sources.</em>
+                </p>
+              </div>
+
+              <figure class="image" style="margin-top:1rem;">
+                <img src="static/images/dataset_creation.avif" alt="Dataset creation" style="max-width:100%;height:auto;" loading="lazy" />
+                <figcaption class="is-size-6">
+                  To generate our dataset, we start from preexisting workflows and convert them to diagrams automatically.
+                  We then ask human labelers to convert the diagrams into manual or digital sketches.
+                </figcaption>
+              </figure>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Results -->
+    <section class="section hero is-light">
+      <div class="container is-max-widescreen">
+        <div class="columns is-centered has-text-centered">
+          <div class="column is-full">
+            <h2 class="title is-3">Results</h2>
+            <div class="content has-text-justified">
+              <p>
+                We benchmark a range of <strong>off-the-shelf</strong> and <strong>fine-tuned</strong> vision–language models on the
+                <em>BigDocs-Sketch2Flow</em> dataset, evaluating their ability to generate structured workflows from sketches and diagrams.
+                Below we summarize the results across different model sizes and categories.
+              </p>
+              <div class="has-text-centered" style="margin:1rem 0;">
+                <a href="https://huggingface.co/collections/ServiceNow/starflow-models-66de9a2953c8a35630c09a9e"
+                   target="_blank" rel="noopener"
+                   class="external-link button is-normal is-rounded is-dark">
+                  <span class="icon"><i class="fas fa-robot" aria-hidden="true"></i></span>
+                  <span>Models 🤗</span>
+                </a>
+              </div>
+
+              <!-- Inline table styles (scoped) -->
+              <style>
+                .badge{display:inline-block;padding:0.15rem 0.4rem;border-radius:0.4rem;font-size:0.75rem;font-weight:600;line-height:1;vertical-align:middle;margin-left:.4rem}
+                .b-blue{background:#e8f0fe;color:#1a56db}
+                .b-orange{background:#fff4e5;color:#b45309}
+                .b-green{background:#e8f5e9;color:#1b5e20}
+                .b-gray{background:#eeeeee;color:#424242}
+                .runner-up{ text-decoration: underline; text-underline-offset: 2px; }
+              </style>
+
+              <div style="overflow-x:auto;">
+                <table class="table is-bordered is-striped is-hoverable is-fullwidth">
+                  <thead>
+                    <tr>
+                      <th>Model</th>
+                      <th>FlowSim<br><small>w/ inputs</small></th>
+                      <th>FlowSim<br><small>no inputs</small></th>
+                      <th>TreeBLEU<br><small>w/ inputs</small></th>
+                      <th>TreeBLEU<br><small>no inputs</small></th>
+                      <th>Trigger<br><small>match</small></th>
+                      <th>Component<br><small>match</small></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <!-- Open-weights -->
+                    <tr><th colspan="7" class="has-background-white-ter">Open-weights Models</th></tr>
+                    <tr><td>Qwen-2.5-VL-3B-Instruct <span class="badge b-blue">&lt;4B</span></td><td>0.410</td><td>0.384</td><td>0.360</td><td>0.329</td><td>0.027</td><td>0.201</td></tr>
+                    <tr><td>Phi-3.5-Vision-4B-Instruct <span class="badge b-orange">4–12B</span></td><td>0.364</td><td>0.346</td><td>0.337</td><td>0.295</td><td>0.079</td><td>0.193</td></tr>
+                    <tr><td>Phi-4-Multimodal-6B-Instruct <span class="badge b-orange">4–12B</span></td><td>0.465</td><td>0.404</td><td>0.394</td><td>0.298</td><td>0.054</td><td>0.244</td></tr>
+                    <tr><td>Qwen-2.5-VL-7B-Instruct <span class="badge b-orange">4–12B</span></td><td>0.614</td><td>0.538</td><td>0.562</td><td>0.508</td><td>0.036</td><td>0.280</td></tr>
+                    <tr><td>LLaMA-3.2-11B-Vision-Instruct <span class="badge b-orange">4–12B</span></td><td>0.466</td><td>0.435</td><td>0.416</td><td>0.382</td><td>0.075</td><td>0.239</td></tr>
+                    <tr><td>Pixtral-12B <span class="badge b-orange">4–12B</span></td><td>0.632</td><td>0.582</td><td>0.617</td><td>0.541</td><td>0.088</td><td>0.261</td></tr>
+                    <tr>
+                      <td>Qwen-2.5-VL-72B-Instruct <span class="badge b-green">&gt;12B</span></td>
+                      <td><strong>0.710</strong></td><td><strong>0.643</strong></td><td><strong>0.703</strong></td><td><strong>0.655</strong></td><td class="runner-up">0.325</td><td><strong>0.305</strong></td>
+                    </tr>
+                    <tr>
+                      <td>LLaMA-3.2-90B-Vision-Instruct <span class="badge b-green">&gt;12B</span></td>
+                      <td class="runner-up">0.687</td><td class="runner-up">0.603</td><td class="runner-up">0.681</td><td class="runner-up">0.627</td><td><strong>0.328</strong></td><td class="runner-up">0.286</td>
+                    </tr>
+
+                    <!-- Proprietary -->
+                    <tr><th colspan="7" class="has-background-white-ter">Proprietary Models</th></tr>
+                    <tr><td>GPT-4o-Mini <span class="badge b-gray">proprietary</span></td><td>0.642</td><td>0.617</td><td>0.650</td><td>0.623</td><td>0.254</td><td>0.305</td></tr>
+                    <tr><td>GPT-4o <span class="badge b-gray">proprietary</span></td><td class="runner-up">0.786</td><td>0.707</td><td class="runner-up">0.794</td><td class="runner-up">0.718</td><td>0.282</td><td class="runner-up">0.317</td></tr>
+                    <tr><td>Claude-3.7-Sonnet <span class="badge b-gray">proprietary</span></td><td>0.763</td><td>0.679</td><td>0.769</td><td>0.701</td><td class="runner-up">0.318</td><td>0.305</td></tr>
+                    <tr>
+                      <td>Gemini Flash 2.0 <span class="badge b-gray">proprietary</span></td>
+                      <td><strong>0.780</strong></td><td><strong>0.713</strong></td><td><strong>0.798</strong></td><td><strong>0.743</strong></td><td><strong>0.466</strong></td><td><strong>0.329</strong></td>
+                    </tr>
+
+                    <!-- Finetuned -->
+                    <tr><th colspan="7" class="has-background-white-ter">Finetuned Models</th></tr>
+                    <tr><td>Qwen-2.5-VL-3B-Instruct (ft) <span class="badge b-blue">&lt;4B</span></td><td>0.941</td><td>0.911</td><td>0.941</td><td>0.902</td><td>0.775</td><td>0.909</td></tr>
+                    <tr><td>Phi-3.5-Vision-4B-Instruct (ft) <span class="badge b-orange">4–12B</span></td><td>0.917</td><td>0.882</td><td>0.917</td><td>0.869</td><td>0.703</td><td>0.874</td></tr>
+                    <tr><td>Phi-4-Multimodal-6B-Instruct (ft) <span class="badge b-orange">4–12B</span></td><td>0.939</td><td>0.908</td><td>0.940</td><td>0.902</td><td>0.770</td><td>0.907</td></tr>
+                    <tr>
+                      <td>Qwen-2.5-VL-7B-Instruct (ft) <span class="badge b-orange">4–12B</span></td>
+                      <td><strong>0.957</strong></td><td><strong>0.927</strong></td><td><strong>0.956</strong></td><td><strong>0.920</strong></td><td><strong>0.819</strong></td><td><strong>0.934</strong></td>
+                    </tr>
+                    <tr>
+                      <td>LLaMA-3.2-11B-Vision-Instruct (ft) <span class="badge b-orange">4–12B</span></td>
+                      <td class="runner-up">0.955</td><td class="runner-up">0.924</td><td class="runner-up">0.954</td><td class="runner-up">0.915</td><td class="runner-up">0.805</td><td><strong>0.934</strong></td>
+                    </tr>
+                    <tr><td>Pixtral-12B (ft) <span class="badge b-orange">4–12B</span></td><td>0.952</td><td>0.919</td><td>0.950</td><td>0.908</td><td>0.753</td><td class="runner-up">0.930</td></tr>
+                  </tbody>
+                </table>
+                <p class="has-text-centered is-size-6">
+                  <em><strong>Flow quality metrics comparison across different models.</strong> Best per category is <strong>bold</strong>;
+                  runner-up is <span class="runner-up">underlined</span>. Size badges:
+                  <span class="badge b-blue">&lt;4B</span>, <span class="badge b-orange">4–12B</span>,
+                  <span class="badge b-green">&gt;12B</span>, <span class="badge b-gray">proprietary</span>.</em>
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Get Started -->
+    <section class="section hero is-light">
+      <div class="container is-max-widescreen">
+        <div class="columns is-centered has-text-centered">
+          <div class="column is-full">
+            <h2 class="title is-3">Get Started</h2>
+            <div class="content has-text-justified">
+              <p>
+                Running inference with <strong>StarFlow</strong> is simple. Load one of the released fine-tuned
+                vision–language models, pass in your workflow sketch, and get structured JSON back:
+              </p>
+              <pre><code class="language-python">from transformers import AutoProcessor, Qwen2_5_VLForConditionalGeneration
+from PIL import Image
+
+# Load processor and model
+processor = AutoProcessor.from_pretrained("ServiceNow/Qwen2.5-VL-7B-Instruct-StarFlow")
+model = Qwen2_5_VLForConditionalGeneration.from_pretrained(
+    "ServiceNow/Qwen2.5-VL-7B-Instruct-StarFlow"
+)
+
+# Load your sketch or diagram
+image = Image.open("workflow_sketch.png")
+
+# Prepare input with an instruction
+inputs = processor(images=image, text="Generate workflow JSON", return_tensors="pt")
+
+# Generate structured workflow
+outputs = model.generate(**inputs, max_length=4096)
+workflow_json = processor.decode(outputs[0], skip_special_tokens=True)
+
+print(workflow_json)</code></pre>
+              <p>
+                This will output a <code>workflow_json</code> string containing nodes, edges, and triggers
+                extracted from your sketch—ready to run inside workflow automation platforms.
+                Swap in other StarFlow fine-tuned models (e.g., LLaMA or Pixtral variants) by just changing the model name.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Video Presentation -->
+    <section class="hero is-small is-light">
+      <div class="hero-body">
+        <div class="container is-max-widescreen">
+          <h2 class="title is-3 has-text-centered">Video Presentation</h2>
+          <div class="columns is-centered has-text-centered">
+            <div class="column is-full">
+              <div class="publication-video">
+                <iframe
+                  src="https://www.youtube.com/embed/Go1uk37uuVA"
+                  title="StarFlow presentation"
+                  frameborder="0"
+                  allow="autoplay; encrypted-media"
+                  allowfullscreen
+                  aria-label="Video presentation"
+                ></iframe>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- BibTeX -->
+    <section class="section" id="BibTeX">
+      <div class="container is-max-widescreen content">
+        <div class="bibtex-header">
+          <h2 class="title">BibTeX</h2>
+          <button class="copy-bibtex-btn" onclick="copyBibTeX()" title="Copy BibTeX to clipboard" aria-label="Copy BibTeX">
+            <i class="fas fa-copy" aria-hidden="true"></i>
+            <span class="copy-text">Copy</span>
+          </button>
+        </div>
+        <pre id="bibtex-code"><code class="nohighlight">@article{Bechard2025StarFlow,
+  title   = {StarFlow: Generating Structured Workflow Outputs From Sketch Images},
+  author  = {Bechard, Patrice and Wang, Chao and Abaskohi, Amirhossein and Rodriguez, Juan and Pal, Christopher and Vazquez, David and Gella, Spandana and Rajeswar, Sai and Taslakian, Perouz},
+  journal = {arXiv preprint arXiv:2503.21889},
+  year    = {2025},
+  doi     = {10.48550/arXiv.2503.21889},
+  url     = {https://arxiv.org/abs/2503.21889}
+}</code></pre>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="container is-max-widescreen">
+      <div class="columns">
+        <div class="column has-text-centered">
+          <p class="is-size-5" style="margin-bottom:1rem;">
+            <img src="static/images/dizzy_star.png" alt="Star Icon" style="height:1.2em;vertical-align:middle;margin-right:0.3em;" />
+            <strong>StarFlow</strong>
+          </p>
+          <p>© 2025 StarFlow Team. All rights reserved.</p>
+          <p class="is-size-7" style="margin-top:1rem;">
+            For questions about StarFlow, please contact
+            <a href="mailto:patrice.bechard@servicenow.com">the authors</a>.
+          </p>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Optional analytics -->
+</body>
+</html>
