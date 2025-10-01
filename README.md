@@ -23,15 +23,15 @@ source ~/.secret
 ```shell
 git clone https://github.com/ServiceNow/StarFlow.git
 cd StarFlow
-# for Llama, Qwen, Pixtral, and API models
+# For training and evaluating Llama, Qwen, Pixtral, and API models
 bash installer/default/install.sh
-# for Phi-3.5 model
+# For training and evaluating Phi-3.5 model
 bash installer/phi35/install.sh
-# for Phi-4 model
+# For training and evaluating Phi-4 model
 bash installer/phi4/install.sh
-# for DeepSeek models
+# For training and evaluating DeepSeek models
 bash installer/deepseek/install.sh
-# for vLLM-hosted models
+# For evaluating vLLM-served models
 bash installer/vllm/install.sh
 ```
 
@@ -39,42 +39,45 @@ bash installer/vllm/install.sh
 
 ### Commands
 
-1. Training
+1. Train models
 
 ```shell
 torchrun --nproc-per-node 2 starflow/pipeline/train.py dataset_name=bigdocs_sketch2flow model_name=llama_32_11b pipeline_name=train
 ```
 
-2. Evaluation
+2. Evaluate models
 
 ```shell
 torchrun --nproc-per-node 2 starflow/pipeline/evaluate.py dataset_name=bigdocs_sketch2flow model_name=llama_32_11b pipeline_name=evaluate
 ```
 
-3. Evaluation for very large models (e.g. Llama-3.2-90B-Vision-Instruct)
+3. Evaluate very large models (e.g. Llama-3.2-90B-Vision-Instruct)
 
 ```shell
 python starflow/pipeline/evaluate.py dataset_name=bigdocs_sketch2flow model_name=llama_32_90b pipeline_name=evaluate
 ```
 
-4. Evaluation for API models (e.g. GPT-4o)
+4. Evaluate API models (e.g. GPT-4o)
 
 ```shell
 python starflow/pipeline/evaluate_api.py dataset_name=bigdocs_sketch2flow model_name=gpt_4o pipeline_name=evaluate_api
 ```
 
-5. Evaluation for vLLM-hosted models
+5. Evaluate vLLM-served models (e.g. Qwen2.5-VL-7B-Instruct)
 
 ```shell
-vllm serve meta-llama/Llama-3.2-11B-Vision-Instruct --max-num-seqs 4 --tensor-parallel-size 2 --dtype bfloat16 --host 0.0.0.0 --port 8000
-python starflow/pipeline/evaluate_api.py dataset_name=bigdocs_sketch2flow model_name=vllm_llama_32_11b pipeline_name=evaluate_api
+python starflow/pipeline/evaluate_api.py dataset_name=bigdocs_sketch2flow model_name=vllm_qwen_25_vl_7b pipeline_name=evaluate_api
 ```
 
 ### Notes
 
-1. Set `model_name` to the `model.name` in the config file of the model to be trained or evaluated.
+1. Before running the commands, properly set the values in the involved config files.
 
-2. Before running training and evaluation, properly set the values in the involved config files.
+2. Before evaluating vLLM-served models, start vLLM as follows:
+
+```shell
+vllm serve Qwen/Qwen2.5-VL-7B-Instruct --max-num-seqs 4 --tensor-parallel-size 2 --dtype bfloat16 --host 0.0.0.0 --port 8000
+```
 
 ## Concept Introduction
 
