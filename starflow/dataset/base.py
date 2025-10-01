@@ -2,8 +2,8 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datasets import concatenate_datasets, load_dataset, load_from_disk
 from PIL import Image
-from torch.utils.data import DataLoader, Dataset
-from typing import Callable
+from torch.utils.data import Dataset
+from typing import Any
 import os
 
 
@@ -19,7 +19,7 @@ class VLExample:
 
 class VLDataset(ABC, Dataset):
     def __init__(self, **kwargs):
-        storage = kwargs["storage"]
+        dataset_path = kwargs["dataset_path"]
         tasks = kwargs["tasks"]
         splits = kwargs["splits"]
         is_local = kwargs["is_local"]
@@ -35,10 +35,10 @@ class VLDataset(ABC, Dataset):
         for task in tasks:
             for split in splits:
                 if is_local:
-                    subset = load_from_disk(os.path.join(storage, task))[split]
+                    subset = load_from_disk(os.path.join(dataset_path, task))[split]
                 else:
                     subset = load_dataset(
-                        storage, task, split=split, num_proc=os.cpu_count()
+                        dataset_path, task, split=split, num_proc=os.cpu_count()
                     )
                 subsets.append(subset)
         dataset = concatenate_datasets(subsets)
@@ -54,10 +54,11 @@ class VLDataset(ABC, Dataset):
         self.dummy_image_size = dummy_image_size
         self.post_init(**kwargs)
 
-    def __len__(self):
-        return len(self.dataset)
+    @abstractmethod
+    def post_init(self, **kwargs):
+        raise NotImplementedError
 
-    def __getitem__(self, index: int):
+    def __getitem__(self, index: int) -> VLExample:
         example = self.dataset[index]
         identifier = self.get_identifier(example)
         assert isinstance(identifier, str)
@@ -96,33 +97,29 @@ class VLDataset(ABC, Dataset):
             source=source,
         )
 
-    def get_data_loader(self, collate_fn: Callable, **kwargs):
-        return DataLoader(self, collate_fn=collate_fn, **kwargs)
+    def __len__(self) -> int:
+        return len(self.dataset)
 
     @abstractmethod
-    def post_init(self, **kwargs):
+    def get_identifier(self, example: dict[str, Any]) -> str:
         raise NotImplementedError
 
     @abstractmethod
-    def get_identifier(self, example: dict):
+    def get_images(self, example: dict[str, Any]) -> list[Image.Image]:
         raise NotImplementedError
 
     @abstractmethod
-    def get_images(self, example: dict):
+    def get_queries(self, example: dict[str, Any]) -> list[str]:
         raise NotImplementedError
 
     @abstractmethod
-    def get_queries(self, example: dict):
+    def get_annotations(self, example: dict[str, Any]) -> list[str]:
         raise NotImplementedError
 
     @abstractmethod
-    def get_annotations(self, example: dict):
+    def get_task(self, example: dict[str, Any]) -> str:
         raise NotImplementedError
 
     @abstractmethod
-    def get_task(self, example: dict):
-        raise NotImplementedError
-
-    @abstractmethod
-    def get_source(self, example: dict):
+    def get_source(self, example: dict[str, Any]) -> str:
         raise NotImplementedError

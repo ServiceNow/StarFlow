@@ -1,10 +1,9 @@
 model:
   name: gemini_20_flash
-  class_path: starflow.model.vl_api_models.openrouter.OpenRouterAPIModel
+  class_path: starflow.model.openai.OpenAIModel
   init_kwargs:
     base_url: https://openrouter.ai/api/v1
-    model_id: google/gemini-2.0-flash-001
-  chunk_size: 128
-  generate_kwargs:
-    max_tokens: 8192
-    temperature: 0.0
+    model_path: google/gemini-2.0-flash-001
+    generate_kwargs:
+      max_tokens: 8192
+      temperature: 0.0

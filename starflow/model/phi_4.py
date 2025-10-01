@@ -1,9 +1,9 @@
 from dataclasses import dataclass
 from torch import Tensor
 from transformers import AutoModelForCausalLM, AutoProcessor, GenerationConfig
-from typing import Optional
-from starflow.dataset.vl_dataset import VLExample
-from starflow.model.vl_model import VLInput, VLModel
+from typing import Any, Optional
+from starflow.dataset.base import VLExample
+from starflow.model.base import VLInput, VLModel
 import torch
 
 
@@ -38,12 +38,12 @@ class PhiInput(VLInput):
 
 
 class PhiModel(VLModel):
-    def get_model_and_processor(self, **kwargs):
-        pretrained_model_path = kwargs["pretrained_model_path"]
+    def get_model_and_processor(self, **kwargs) -> tuple[Any, Any]:
+        model_path = kwargs["model_path"]
         torch_dtype = kwargs["torch_dtype"]
         attn_implementation = kwargs["attn_implementation"]
         model = AutoModelForCausalLM.from_pretrained(
-            pretrained_model_path,
+            model_path,
             torch_dtype=torch_dtype,
             _attn_implementation=attn_implementation,
             trust_remote_code=True,
@@ -59,23 +59,31 @@ class PhiModel(VLModel):
             del layer.self_attn.o_proj.lora_B.speech
             del layer.self_attn.qkv_proj.lora_A.speech
             del layer.self_attn.qkv_proj.lora_B.speech
-        processor = AutoProcessor.from_pretrained(
-            pretrained_model_path, trust_remote_code=True
-        )
+        processor = AutoProcessor.from_pretrained(model_path, trust_remote_code=True)
         return model, processor
 
     def post_init(self, **kwargs):
-        pretrained_model_path = kwargs["pretrained_model_path"]
+        model_path = kwargs["model_path"]
         ignore_index = kwargs["ignore_index"]
         max_length = kwargs["max_length"]
-        max_new_tokens = kwargs["max_new_tokens"]
-        generation_config = GenerationConfig.from_pretrained(pretrained_model_path)
-        self.generation_config = generation_config
+        requires_grad_kwargs = kwargs["requires_grad_kwargs"]
+        generate_kwargs = kwargs["generate_kwargs"]
+        self.generation_config = GenerationConfig.from_pretrained(model_path)
         self.ignore_index = ignore_index
         self.max_length = max_length
-        self.max_new_tokens = max_new_tokens
+        for param in self.model.parameters():
+            param.requires_grad = requires_grad_kwargs["language_model_requires_grad"]
+        for param in self.model.model.embed_tokens_extend.image_embed.parameters():
+            param.requires_grad = requires_grad_kwargs["vision_model_requires_grad"]
+        for (
+            param
+        ) in (
+            self.model.model.embed_tokens_extend.image_embed.img_projection.parameters()
+        ):
+            param.requires_grad = requires_grad_kwargs["connector_requires_grad"]
+        self.generate_kwargs = generate_kwargs
 
-    def get_layer_classes(self):
+    def get_layer_classes(self) -> set[type]:
         layer_classes = set()
         for layer in self.model.model.layers:
             layer_classes.add(layer.__class__)
@@ -87,22 +95,7 @@ class PhiModel(VLModel):
             layer_classes.add(layer.__class__)
         return layer_classes
 
-    def requires_grad(self, **kwargs):
-        language_model_requires_grad = kwargs["language_model_requires_grad"]
-        vision_model_requires_grad = kwargs["vision_model_requires_grad"]
-        connector_requires_grad = kwargs["connector_requires_grad"]
-        for param in self.model.parameters():
-            param.requires_grad = language_model_requires_grad
-        for param in self.model.model.embed_tokens_extend.image_embed.parameters():
-            param.requires_grad = vision_model_requires_grad
-        for (
-            param
-        ) in (
-            self.model.model.embed_tokens_extend.image_embed.img_projection.parameters()
-        ):
-            param.requires_grad = connector_requires_grad
-
-    def preprocess(self, vl_example: VLExample, for_generate: bool):
+    def preprocess(self, vl_example: VLExample, for_generate: bool) -> PhiInput:
         input_ids = []
         input_image_embeds = None
         image_sizes = None
@@ -155,13 +148,10 @@ class PhiModel(VLModel):
                 input_ids.append(response_ids)
                 if not for_generate:
                     labels.append(response_ids)
-        truncation_length = (
-            self.max_length if for_generate else self.max_length + self.max_new_tokens
-        )
-        input_ids = torch.cat(input_ids, dim=1)[:, :truncation_length]
+        input_ids = torch.cat(input_ids, dim=1)[:, : self.max_length]
         attention_mask = torch.full_like(input_ids, fill_value=True, dtype=torch.bool)
         if not for_generate:
-            labels = torch.cat(labels, dim=1)[:, :truncation_length]
+            labels = torch.cat(labels, dim=1)[:, : self.max_length]
             if torch.all(labels == self.ignore_index).item():
                 labels[0, -1] = self.processor.tokenizer.eos_token_id
 
@@ -174,7 +164,7 @@ class PhiModel(VLModel):
             labels=labels,
         )
 
-    def collate_inner(self, vl_inputs: list[PhiInput]):
+    def collate_inner(self, vl_inputs: list[PhiInput]) -> PhiInput:
         input_ids = torch.nn.utils.rnn.pad_sequence(
             [vl_input.input_ids.squeeze(0) for vl_input in vl_inputs],
             batch_first=True,
@@ -210,7 +200,7 @@ class PhiModel(VLModel):
             labels=labels,
         )
 
-    def forward(self, vl_input: PhiInput):
+    def forward(self, vl_input: PhiInput) -> Any:
         return self.model(
             input_ids=vl_input.input_ids,
             attention_mask=vl_input.attention_mask,
@@ -223,7 +213,7 @@ class PhiModel(VLModel):
             use_cache=False,
         ).loss
 
-    def generate_inner(self, vl_input: PhiInput, **kwargs):
+    def generate_inner(self, vl_input: PhiInput) -> str:
         output_ids = self.model.generate(
             input_ids=vl_input.input_ids,
             attention_mask=vl_input.attention_mask,
@@ -232,10 +222,9 @@ class PhiModel(VLModel):
             image_attention_mask=vl_input.image_attention_mask,
             input_mode=1,
             eos_token_id=self.processor.tokenizer.eos_token_id,
-            max_new_tokens=self.max_new_tokens,
             generation_config=self.generation_config,
             use_cache=True,
-            **kwargs,
+            **self.generate_kwargs,
         )
         return self.processor.tokenizer.batch_decode(
             output_ids[:, vl_input.input_ids.shape[1] :],

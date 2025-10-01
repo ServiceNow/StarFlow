@@ -1,9 +1,9 @@
 from dataclasses import dataclass
 from torch import Tensor
-from typing import Optional
+from typing import Any, Optional
 from deepseek_vl2.models import DeepseekVLV2ForCausalLM, DeepseekVLV2Processor
-from starflow.dataset.vl_dataset import VLExample
-from starflow.model.vl_model import VLInput, VLModel
+from starflow.dataset.base import VLExample
+from starflow.model.base import VLInput, VLModel
 import torch
 
 
@@ -38,24 +38,31 @@ class DeepseekInput(VLInput):
 
 
 class DeepseekModel(VLModel):
-    def get_model_and_processor(self, **kwargs):
-        pretrained_model_path = kwargs["pretrained_model_path"]
+    def get_model_and_processor(self, **kwargs) -> tuple[Any, Any]:
+        model_path = kwargs["model_path"]
         torch_dtype = kwargs["torch_dtype"]
         model = DeepseekVLV2ForCausalLM.from_pretrained(
-            pretrained_model_path, torch_dtype=getattr(torch, torch_dtype)
+            model_path, torch_dtype=getattr(torch, torch_dtype)
         )
-        processor = DeepseekVLV2Processor.from_pretrained(pretrained_model_path)
+        processor = DeepseekVLV2Processor.from_pretrained(model_path)
         return model, processor
 
     def post_init(self, **kwargs):
         ignore_index = kwargs["ignore_index"]
         max_length = kwargs["max_length"]
-        max_new_tokens = kwargs["max_new_tokens"]
+        requires_grad_kwargs = kwargs["requires_grad_kwargs"]
+        generate_kwargs = kwargs["generate_kwargs"]
         self.ignore_index = ignore_index
         self.max_length = max_length
-        self.max_new_tokens = max_new_tokens
+        for param in self.model.parameters():
+            param.requires_grad = requires_grad_kwargs["language_model_requires_grad"]
+        for param in self.model.vision.parameters():
+            param.requires_grad = requires_grad_kwargs["vision_model_requires_grad"]
+        for param in self.model.projector.parameters():
+            param.requires_grad = requires_grad_kwargs["connector_requires_grad"]
+        self.generate_kwargs = generate_kwargs
 
-    def get_layer_classes(self):
+    def get_layer_classes(self) -> set[type]:
         layer_classes = set()
         for layer in self.model.language.model.layers:
             layer_classes.add(layer.__class__)
@@ -63,18 +70,7 @@ class DeepseekModel(VLModel):
             layer_classes.add(layer.__class__)
         return layer_classes
 
-    def requires_grad(self, **kwargs):
-        language_model_requires_grad = kwargs["language_model_requires_grad"]
-        vision_model_requires_grad = kwargs["vision_model_requires_grad"]
-        connector_requires_grad = kwargs["connector_requires_grad"]
-        for param in self.model.parameters():
-            param.requires_grad = language_model_requires_grad
-        for param in self.model.vision.parameters():
-            param.requires_grad = vision_model_requires_grad
-        for param in self.model.projector.parameters():
-            param.requires_grad = connector_requires_grad
-
-    def preprocess(self, vl_example: VLExample, for_generate: bool):
+    def preprocess(self, vl_example: VLExample, for_generate: bool) -> DeepseekInput:
         input_ids = []
         images = None
         images_seq_mask = None
@@ -124,10 +120,7 @@ class DeepseekModel(VLModel):
                 input_ids.append(response_ids)
                 if not for_generate:
                     labels.append(response_ids)
-        truncation_length = (
-            self.max_length if for_generate else self.max_length + self.max_new_tokens
-        )
-        input_ids = torch.cat(input_ids, dim=1)[:, :truncation_length]
+        input_ids = torch.cat(input_ids, dim=1)[:, : self.max_length]
         attention_mask = torch.full_like(input_ids, fill_value=True, dtype=torch.bool)
         images_seq_mask = torch.cat(
             [
@@ -139,9 +132,9 @@ class DeepseekModel(VLModel):
                 ),
             ],
             dim=1,
-        )[:, :truncation_length]
+        )[:, : self.max_length]
         if not for_generate:
-            labels = torch.cat(labels, dim=1)[:, :truncation_length]
+            labels = torch.cat(labels, dim=1)[:, : self.max_length]
             if torch.all(labels == self.ignore_index).item():
                 labels[0, -1] = self.processor.tokenizer.eos_token_id
         return DeepseekInput(
@@ -153,7 +146,7 @@ class DeepseekModel(VLModel):
             labels=labels,
         )
 
-    def collate_inner(self, vl_inputs: list[DeepseekInput]):
+    def collate_inner(self, vl_inputs: list[DeepseekInput]) -> DeepseekInput:
         input_ids = torch.nn.utils.rnn.pad_sequence(
             [vl_input.input_ids.squeeze(0) for vl_input in vl_inputs],
             batch_first=True,
@@ -193,7 +186,7 @@ class DeepseekModel(VLModel):
             labels=labels,
         )
 
-    def forward(self, vl_input: DeepseekInput):
+    def forward(self, vl_input: DeepseekInput) -> Any:
         return self.model(
             input_ids=vl_input.input_ids,
             attention_mask=vl_input.attention_mask,
@@ -205,7 +198,7 @@ class DeepseekModel(VLModel):
             use_cache=False,
         ).loss
 
-    def generate_inner(self, vl_input: DeepseekInput, **kwargs):
+    def generate_inner(self, vl_input: DeepseekInput) -> str:
         inputs_embeds = self.model.prepare_inputs_embeds(
             input_ids=vl_input.input_ids,
             images=vl_input.images,
@@ -218,9 +211,8 @@ class DeepseekModel(VLModel):
             pad_token_id=self.processor.tokenizer.eos_token_id,
             bos_token_id=self.processor.tokenizer.bos_token_id,
             eos_token_id=self.processor.tokenizer.eos_token_id,
-            max_new_tokens=self.max_new_tokens,
             use_cache=True,
-            **kwargs,
+            **self.generate_kwargs,
         )
         return self.processor.tokenizer.batch_decode(
             output_ids,

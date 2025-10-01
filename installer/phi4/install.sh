@@ -1,9 +1,8 @@
-conda init
-source ~/.bashrc
-conda create --name starflow_phi4 --yes python=3.11
-conda activate starflow_phi4
-pip install --upgrade pip
-pip install torch==2.6.0 torchvision==0.21.0 --index-url https://download.pytorch.org/whl/cu124
-pip install --no-build-isolation flash-attn==2.7.4.post1
-pip install peft==0.13.2 transformers==4.48.2
+[ -d ~/starflow_phi4 ] || uv venv ~/starflow_phi4 --python 3.11 --seed
+source ~/starflow_phi4/bin/activate
+pip install pip setuptools --upgrade
+pip install torch torchvision --index-url https://download.pytorch.org/whl/cu128
+pip install flash-attn --no-build-isolation
+pip install -r installer/phi4/requirements.txt
 pip install --editable .
+python -m nltk.downloader punkt_tab

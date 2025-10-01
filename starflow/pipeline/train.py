@@ -1,30 +1,31 @@
 from accelerate.utils import gather_object, tqdm
+from accelerate.utils.modeling import load_checkpoint_in_model
 from omegaconf import OmegaConf
+from torch import inference_mode
+from torch.optim import AdamW
 from torch.utils.data import DataLoader
 from transformers import get_cosine_schedule_with_warmup
-from starflow.model.vl_model import VLModel
+from starflow.model.base import VLModel
 from starflow.pipeline.utils import (
     get_accelerator,
     get_config,
     get_logging_dir,
-    get_vl_object,
     LossMeter,
     load_checkpoint,
-    load_model_checkpoint,
     save_checkpoint,
 )
+from starflow.utils import get_vl_object
 import logging
 import math
 import time
-import torch
 import warnings
 
 
-@torch.inference_mode()
-def validate(vl_model: VLModel, data_loader: DataLoader):
+@inference_mode()
+def validate(vl_model: VLModel, validate_data_loader: DataLoader):
     loss_meter = LossMeter()
-    progress_bar = tqdm(desc="Validate", total=len(data_loader))
-    for vl_input in data_loader:
+    progress_bar = tqdm(desc="Validate", total=len(validate_data_loader))
+    for vl_input in validate_data_loader:
         loss = vl_model(vl_input)
         loss_meter.update(loss.item(), vl_input.labels.shape[0])
         progress_bar.update()
@@ -46,11 +47,11 @@ def train():
     accelerator.print(f"Dataset: {config.dataset.name}")
     accelerator.print(f"Model: {config.model.name}")
     accelerator.print(f"Pipeline: {config.pipeline.name}")
-    model_checkpoint_file = load_model_checkpoint(config, vl_model)
-    if model_checkpoint_file is not None:
-        accelerator.print(f"Loaded model checkpoint from {model_checkpoint_file}")
-    vl_model.requires_grad(**OmegaConf.to_container(config.model.requires_grad_kwargs))
-    accelerator.print(f"Requires gradient: {str(config.model.requires_grad_kwargs)}")
+    if config.pipeline.model_checkpoint_file is not None:
+        load_checkpoint_in_model(vl_model, config.pipeline.model_checkpoint_file)
+        accelerator.print(
+            f"Loaded model checkpoint from {config.pipeline.model_checkpoint_file}"
+        )
     accelerator.print(f"Num processes: {accelerator.num_processes}")
     accelerator.print(
         f"Gradient accumulation steps: {accelerator.gradient_accumulation_steps}"
@@ -60,9 +61,10 @@ def train():
         **OmegaConf.to_container(config.dataset.train.init_kwargs),
     )
     accelerator.print(f"Train dataset size: {len(train_vl_dataset)}")
-    train_data_loader = train_vl_dataset.get_data_loader(
-        vl_model.collate,
-        **OmegaConf.to_container(config.dataset.train.data_loader_kwargs),
+    train_data_loader = DataLoader(
+        train_vl_dataset,
+        collate_fn=vl_model.collate,
+        **OmegaConf.to_container(config.pipeline.data_loader_kwargs),
     )
     train_batch_size_per_process = train_data_loader.batch_size
     accelerator.print(f"Train batch size per process: {train_batch_size_per_process}")
@@ -77,9 +79,10 @@ def train():
         **OmegaConf.to_container(config.dataset.validate.init_kwargs),
     )
     accelerator.print(f"Validate dataset size: {len(validate_vl_dataset)}")
-    validate_data_loader = validate_vl_dataset.get_data_loader(
-        vl_model.collate,
-        **OmegaConf.to_container(config.dataset.validate.data_loader_kwargs),
+    validate_data_loader = DataLoader(
+        validate_vl_dataset,
+        collate_fn=vl_model.collate,
+        **OmegaConf.to_container(config.pipeline.data_loader_kwargs),
     )
     validate_batch_size_per_process = validate_data_loader.batch_size
     accelerator.print(
@@ -89,9 +92,8 @@ def train():
         validate_batch_size_per_process * accelerator.num_processes
     )
     accelerator.print(f"Validate batch size in total: {validate_batch_size_in_total}")
-    optimizer = torch.optim.AdamW(
-        vl_model.parameters(),
-        **OmegaConf.to_container(config.pipeline.adamw_optimizer_kwargs),
+    optimizer = AdamW(
+        vl_model.parameters(), **OmegaConf.to_container(config.pipeline.adamw_kwargs)
     )
     scheduler = get_cosine_schedule_with_warmup(
         optimizer,
@@ -126,15 +128,16 @@ def train():
         loss_meter = LossMeter()
         progress_bar = tqdm(desc=f"Epoch {epoch}", total=num_steps_per_epoch)
         if epoch == start_epoch:
-            data_loader = accelerator.skip_first_batches(
+            train_data_loader_backup = train_data_loader
+            train_data_loader = accelerator.skip_first_batches(
                 train_data_loader, start_step * accelerator.gradient_accumulation_steps
             )
             progress_bar.update(start_step)
         else:
-            data_loader = train_data_loader
+            train_data_loader = train_data_loader_backup
         accelerator.wait_for_everyone()
         start_time = time.time()
-        for vl_input in data_loader:
+        for vl_input in train_data_loader:
             with accelerator.accumulate(vl_model):
                 loss = vl_model(vl_input)
                 loss_meter.update(loss.item(), vl_input.labels.shape[0])

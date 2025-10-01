@@ -1,9 +1,9 @@
 from dataclasses import dataclass
 from torch import Tensor
 from transformers import AutoProcessor, MllamaForConditionalGeneration
-from typing import Optional
-from starflow.dataset.vl_dataset import VLExample
-from starflow.model.vl_model import VLInput, VLModel
+from typing import Any, Optional
+from starflow.dataset.base import VLExample
+from starflow.model.base import VLInput, VLModel
 import torch
 
 
@@ -41,24 +41,31 @@ class LlamaInput(VLInput):
 
 
 class LlamaModel(VLModel):
-    def get_model_and_processor(self, **kwargs):
-        pretrained_model_path = kwargs["pretrained_model_path"]
+    def get_model_and_processor(self, **kwargs) -> tuple[Any, Any]:
+        model_path = kwargs["model_path"]
         torch_dtype = kwargs["torch_dtype"]
         model = MllamaForConditionalGeneration.from_pretrained(
-            pretrained_model_path, torch_dtype=torch_dtype
+            model_path, torch_dtype=torch_dtype
         )
-        processor = AutoProcessor.from_pretrained(pretrained_model_path)
+        processor = AutoProcessor.from_pretrained(model_path)
         return model, processor
 
     def post_init(self, **kwargs):
         ignore_index = kwargs["ignore_index"]
         max_length = kwargs["max_length"]
-        max_new_tokens = kwargs["max_new_tokens"]
+        requires_grad_kwargs = kwargs["requires_grad_kwargs"]
+        generate_kwargs = kwargs["generate_kwargs"]
         self.ignore_index = ignore_index
         self.max_length = max_length
-        self.max_new_tokens = max_new_tokens
+        for param in self.model.parameters():
+            param.requires_grad = requires_grad_kwargs["language_model_requires_grad"]
+        for param in self.model.model.vision_model.parameters():
+            param.requires_grad = requires_grad_kwargs["vision_model_requires_grad"]
+        for param in self.model.model.multi_modal_projector.parameters():
+            param.requires_grad = requires_grad_kwargs["connector_requires_grad"]
+        self.generate_kwargs = generate_kwargs
 
-    def get_layer_classes(self):
+    def get_layer_classes(self) -> set[type]:
         layer_classes = set()
         for layer in self.model.model.language_model.layers:
             layer_classes.add(layer.__class__)
@@ -68,18 +75,7 @@ class LlamaModel(VLModel):
             layer_classes.add(layer.__class__)
         return layer_classes
 
-    def requires_grad(self, **kwargs):
-        language_model_requires_grad = kwargs["language_model_requires_grad"]
-        vision_model_requires_grad = kwargs["vision_model_requires_grad"]
-        connector_requires_grad = kwargs["connector_requires_grad"]
-        for param in self.model.parameters():
-            param.requires_grad = language_model_requires_grad
-        for param in self.model.model.vision_model.parameters():
-            param.requires_grad = vision_model_requires_grad
-        for param in self.model.model.multi_modal_projector.parameters():
-            param.requires_grad = connector_requires_grad
-
-    def preprocess(self, vl_example: VLExample, for_generate: bool):
+    def preprocess(self, vl_example: VLExample, for_generate: bool) -> LlamaInput:
         input_ids = []
         pixel_values = None
         aspect_ratio_ids = None
@@ -145,10 +141,7 @@ class LlamaModel(VLModel):
                 input_ids.append(response_ids)
                 if not for_generate:
                     labels.append(response_ids)
-        truncation_length = (
-            self.max_length if for_generate else self.max_length + self.max_new_tokens
-        )
-        input_ids = torch.cat(input_ids, dim=1)[:, :truncation_length]
+        input_ids = torch.cat(input_ids, dim=1)[:, : self.max_length]
         attention_mask = torch.full_like(input_ids, fill_value=True, dtype=torch.bool)
         cross_attention_mask = torch.cat(
             [
@@ -164,9 +157,9 @@ class LlamaModel(VLModel):
                 ),
             ],
             dim=1,
-        )[:, :truncation_length]
+        )[:, : self.max_length]
         if not for_generate:
-            labels = torch.cat(labels, dim=1)[:, :truncation_length]
+            labels = torch.cat(labels, dim=1)[:, : self.max_length]
             if torch.all(labels == self.ignore_index).item():
                 labels[0, -1] = self.processor.tokenizer.eos_token_id
         return LlamaInput(
@@ -179,7 +172,7 @@ class LlamaModel(VLModel):
             labels=labels,
         )
 
-    def collate_inner(self, vl_inputs: list[LlamaInput]):
+    def collate_inner(self, vl_inputs: list[LlamaInput]) -> LlamaInput:
         input_ids = torch.nn.utils.rnn.pad_sequence(
             [vl_input.input_ids.squeeze(0) for vl_input in vl_inputs],
             batch_first=True,
@@ -237,7 +230,7 @@ class LlamaModel(VLModel):
             labels=labels,
         )
 
-    def forward(self, vl_input: LlamaInput):
+    def forward(self, vl_input: LlamaInput) -> Any:
         return self.model(
             input_ids=vl_input.input_ids,
             attention_mask=vl_input.attention_mask,
@@ -250,7 +243,7 @@ class LlamaModel(VLModel):
             use_cache=False,
         ).loss
 
-    def generate_inner(self, vl_input: LlamaInput, **kwargs):
+    def generate_inner(self, vl_input: LlamaInput) -> str:
         output_ids = self.model.generate(
             input_ids=vl_input.input_ids,
             attention_mask=vl_input.attention_mask,
@@ -259,9 +252,8 @@ class LlamaModel(VLModel):
             aspect_ratio_mask=vl_input.aspect_ratio_mask,
             cross_attention_mask=vl_input.cross_attention_mask,
             eos_token_id=self.processor.tokenizer.eos_token_id,
-            max_new_tokens=self.max_new_tokens,
             use_cache=True,
-            **kwargs,
+            **self.generate_kwargs,
         )
         return self.processor.tokenizer.batch_decode(
             output_ids[:, vl_input.input_ids.shape[1] :],

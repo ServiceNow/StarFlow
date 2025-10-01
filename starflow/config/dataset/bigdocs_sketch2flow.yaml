@@ -1,9 +1,9 @@
 dataset:
   name: bigdocs_sketch2flow
-  class_path: starflow.dataset.vl_datasets.bigdocs.BigDocsDataset
+  class_path: starflow.dataset.bigdocs.BigDocsDataset
   train:
     init_kwargs:
-      storage: ServiceNow/BigDocs-Sketch2Flow
+      dataset_path: ServiceNow/BigDocs-Sketch2Flow
       tasks:
         - default
       splits:
@@ -13,14 +13,9 @@ dataset:
       min_image_size: 16
       max_image_size: 4096
       dummy_image_size: 224
-    data_loader_kwargs:
-      batch_size: 2
-      shuffle: true
-      num_workers: 2
-      pin_memory: true
   validate:
     init_kwargs:
-      storage: ServiceNow/BigDocs-Sketch2Flow
+      dataset_path: ServiceNow/BigDocs-Sketch2Flow
       tasks:
         - default
       splits:
@@ -30,14 +25,9 @@ dataset:
       min_image_size: 16
       max_image_size: 4096
       dummy_image_size: 224
-    data_loader_kwargs:
-      batch_size: 2
-      shuffle: true
-      num_workers: 2
-      pin_memory: true
   test:
     init_kwargs:
-      storage: ServiceNow/BigDocs-Sketch2Flow
+      dataset_path: ServiceNow/BigDocs-Sketch2Flow
       tasks:
         - default
       splits:
@@ -47,10 +37,10 @@ dataset:
       min_image_size: 16
       max_image_size: 4096
       dummy_image_size: 224
-    metrics:
-      - class_path: starflow.dataset.metric.vl_metrics.flow_similarity.FlowSimilarityMetric
-        init_kwargs: {}
-      - class_path: starflow.dataset.metric.vl_metrics.flow_match.FlowMatchMetric
-        init_kwargs: {}
-      - class_path: starflow.dataset.metric.vl_metrics.flowbleu.FlowBLEUMetric
-        init_kwargs: {}
+  metrics:
+    - class_path: starflow.dataset.metric.flow_similarity.FlowSimilarityMetric
+      init_kwargs: {}
+    - class_path: starflow.dataset.metric.flow_match.FlowMatchMetric
+      init_kwargs: {}
+    - class_path: starflow.dataset.metric.flow_bleu.FlowBLEUMetric
+      init_kwargs: {}

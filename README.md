@@ -1,34 +1,28 @@
 # StarFlow: Generating Structured Workflow Outputs From Sketch Images
 
-## Setup
+## Development Environment
 
-1. Clone the repository
-
-```shell
-git clone https://github.com/ServiceNow/StarFlow.git
-cd StarFlow
-```
-
-2. Edit `~/.secret` (create a new file if it does not exist)
+1. Edit `~/.secret` (create a new file if it does not exist)
 
 ```shell
 export HF_TOKEN=<HF_TOKEN>
 export WANDB_API_KEY=<WANDB_API_KEY>
-export OPENROUTER_API_KEY=<OPENROUTER_API_KEY>
-export OUTPUT_DIR=<OUTPUT_DIR>
+export OPENAI_API_KEY=<OPENAI_API_KEY>
 ...
 ```
 
-3. Edit `~/.bashrc` (create a new file if it does not exist)
+2. Edit `~/.bashrc` (create a new file if it does not exist)
 
 ```shell
 source ~/.secret
 ...
 ```
 
-4. Install packages
+3. Clone the repository and install packages
 
 ```shell
+git clone https://github.com/ServiceNow/StarFlow.git
+cd StarFlow
 # for Llama, Qwen, Pixtral, and API models
 bash installer/default/install.sh
 # for Phi-3.5 model
@@ -37,6 +31,8 @@ bash installer/phi35/install.sh
 bash installer/phi4/install.sh
 # for DeepSeek models
 bash installer/deepseek/install.sh
+# for vLLM-hosted models
+bash installer/vllm/install.sh
 ```
 
 ## Training and Evaluation Guide
@@ -46,50 +42,39 @@ bash installer/deepseek/install.sh
 1. Training
 
 ```shell
-torchrun \
-    --nproc-per-node 2 \
-    starflow/pipeline/train.py \
-    dataset_config_file=starflow/config/dataset/bigdocs_sketch2flow.yaml \
-    model_config_file=starflow/config/model/llama_32_11b.yaml \
-    pipeline_config_file=starflow/config/pipeline/train.yaml
+torchrun --nproc-per-node 2 starflow/pipeline/train.py dataset_name=bigdocs_sketch2flow model_name=llama_32_11b pipeline_name=train
 ```
 
 2. Evaluation
 
 ```shell
-torchrun \
-    --nproc-per-node 2 \
-    starflow/pipeline/evaluate.py \
-    dataset_config_file=starflow/config/dataset/bigdocs_sketch2flow.yaml \
-    model_config_file=starflow/config/model/llama_32_11b.yaml \
-    pipeline_config_file=starflow/config/pipeline/evaluate.yaml
+torchrun --nproc-per-node 2 starflow/pipeline/evaluate.py dataset_name=bigdocs_sketch2flow model_name=llama_32_11b pipeline_name=evaluate
 ```
 
 3. Evaluation for very large models (e.g. Llama-3.2-90B-Vision-Instruct)
 
 ```shell
-python \
-    starflow/pipeline/evaluate.py \
-    dataset_config_file=starflow/config/dataset/bigdocs_sketch2flow.yaml \
-    model_config_file=starflow/config/model/llama_32_90b.yaml \
-    pipeline_config_file=starflow/config/pipeline/evaluate.yaml
+python starflow/pipeline/evaluate.py dataset_name=bigdocs_sketch2flow model_name=llama_32_90b pipeline_name=evaluate
 ```
 
 4. Evaluation for API models (e.g. GPT-4o)
 
 ```shell
-python \
-    starflow/pipeline/evaluate_api.py \
-    dataset_config_file=starflow/config/dataset/bigdocs_sketch2flow.yaml \
-    model_config_file=starflow/config/model/gpt_4o.yaml \
-    pipeline_config_file=starflow/config/pipeline/evaluate_api.yaml
+python starflow/pipeline/evaluate_api.py dataset_name=bigdocs_sketch2flow model_name=gpt_4o pipeline_name=evaluate_api
+```
+
+5. Evaluation for vLLM-hosted models
+
+```shell
+vllm serve meta-llama/Llama-3.2-11B-Vision-Instruct --max-num-seqs 4 --tensor-parallel-size 2 --dtype bfloat16 --host 0.0.0.0 --port 8000
+python starflow/pipeline/evaluate_api.py dataset_name=bigdocs_sketch2flow model_name=vllm_llama_32_11b pipeline_name=evaluate_api
 ```
 
 ### Notes
 
-1. Other models can be trained and evaluated by setting their config file path as the value of `model_config_file`.
+1. Set `model_name` to the `model.name` in the config file of the model to be trained or evaluated.
 
-2. The values in the involved config files should be set properly before running training and evaluation.
+2. Before running training and evaluation, properly set the values in the involved config files.
 
 ## Concept Introduction
 
@@ -97,15 +82,15 @@ StarFlow consists of four types of components: datasets, metrics, models, and pi
 
 ### Datasets
 
-Datasets provide vision-language data for training and evaluation. They are encapsulated as sub-classes of [`VLDataset`](starflow/dataset/vl_dataset.py). For example, the `BigDocs` datasets are encapsulated as [`BigDocsDataset`](starflow/dataset/vl_datasets/bigdocs.py).
+Datasets provide vision-language data for training and evaluation. They are encapsulated as sub-classes of [`VLDataset`](starflow/dataset/base.py). For example, the `BigDocs` datasets are encapsulated as [`BigDocsDataset`](starflow/dataset/bigdocs.py).
 
-When instantiating a dataset, its data examples are first loaded from either Hugging Face or local storage, and then encapsulated as [`VLExample`](starflow/dataset/vl_dataset.py).
+When instantiating a dataset, its data examples are first loaded from either Hugging Face or local storage, and then encapsulated as [`VLExample`](starflow/dataset/base.py).
 
 Each dataset comes with a config file, which specifies the settings for instantiating and using the dataset. For example, the config file for `ServiceNow/BigDocs-Sketch2Flow` is [`starflow/config/dataset/bigdocs_sketch2flow.yaml`](starflow/config/dataset/bigdocs_sketch2flow.yaml).
 
 ### Metrics
 
-Metrics compute performance numbers of models on datasets. They are encapsulated as sub-classes of [`VLMetric`](starflow/dataset/metric/vl_metric.py). For example, the `Flow Similarity` metric is encapsulated as [`FlowSimilarityMetric`](starflow/dataset/metric/vl_metrics/flow_similarity.py).
+Metrics compute performance numbers of models on datasets. They are encapsulated as sub-classes of [`VLMetric`](starflow/dataset/metric/base.py). For example, the `Flow Similarity` metric is encapsulated as [`FlowSimilarityMetric`](starflow/dataset/metric/flow_similarity.py).
 
 When using a metric to evaluate a model on a dataset, the metric compares the outputs of the model with the corresponding ground truths in the dataset and thereby obtains the performance numbers.
 
@@ -113,13 +98,13 @@ Each metric is applied to one or more datasets, and the settings for instantiati
 
 ### Models
 
-Models generate textual outputs given vision-language inputs from datasets. They are encapsulated as sub-classes of [`VLModel`](starflow/model/vl_model.py), and their inputs are encapsulated as sub-classes of [`VLInput`](starflow/model/vl_model.py). For example, the `Llama-3.2-Vision-Instruct` models are encapsulated as [`LlamaModel`](starflow/model/vl_models/llama32.py), and their inputs are encapsulated as [`LlamaInput`](starflow/model/vl_models/llama32.py).
+Models generate textual outputs given vision-language inputs from datasets. They are encapsulated as sub-classes of [`VLModel`](starflow/model/base.py), and their inputs are encapsulated as sub-classes of [`VLInput`](starflow/model/base.py). For example, the `Llama-3.2-Vision-Instruct` models are encapsulated as [`LlamaModel`](starflow/model/llama_32.py), and their inputs are encapsulated as [`LlamaInput`](starflow/model/llama_32.py).
 
 When training a model, a cross-entropy loss is obtained from the forward pass of the model, which is then optimized in the backward pass through gradient decent. When evaluating a model, the textual outputs of the model are processed by the applied metrics to compute performance numbers.
 
 Each model comes with a config file, which specifies the settings for instantiating and using the model. For example, the config file for `Llama-3.2-11B-Vision-Instruct` is [`starflow/config/model/llama_32_11b.yaml`](starflow/config/model/llama_32_11b.yaml).
 
-A special category of models is API models, which can only be used through API calls. They are encapsulated as sub-classes of [`VLAPIModel`](starflow/model/vl_api_model.py), and each of them comes with a config file. For example, the OpenRouter-routed `GPT-4o` model is encapsulated as [`OpenRouterAPIModel`](starflow/model/vl_api_models/openrouter.py), and its config file is [`starflow/config/model/gpt_4o.yaml`](starflow/config/model/gpt_4o.yaml). API models cannot be trained, but can still be evaluated.
+A special category of models is API models, which can only be used through API calls. They are encapsulated as sub-classes of [`VLAPIModel`](starflow/model/base.py), and each of them comes with a config file. For example, the OpenAI's `GPT-4o` model is encapsulated as [`OpenAIModel`](starflow/model/openai.py), and its config file is [`starflow/config/model/gpt_4o.yaml`](starflow/config/model/gpt_4o.yaml). API models cannot be trained, but can still be evaluated.
 
 ### Pipelines
 

@@ -1,9 +1,9 @@
 model:
-  name: claude_37_sonnet
+  name: vllm_qwen_25_vl_72b
   class_path: starflow.model.openai.OpenAIModel
   init_kwargs:
-    base_url: https://openrouter.ai/api/v1
-    model_path: anthropic/claude-3.7-sonnet
+    base_url: http://localhost:8000/v1
+    model_path: Qwen/Qwen2.5-VL-72B-Instruct
     generate_kwargs:
       max_tokens: 8192
       temperature: 0.0

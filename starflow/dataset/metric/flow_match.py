@@ -1,8 +1,7 @@
-from typing import List, Optional
-
-from tqdm import tqdm
-from starflow.dataset.metric.vl_metrics.flow_similarity import Constants, FlowSimilarityMetric
+from typing import Any, Optional
+from starflow.dataset.metric.flow_similarity import Constants, FlowSimilarityMetric
 import json
+
 
 class FlowMatchMetric(FlowSimilarityMetric):
     """Metric for Flow Match. Computes the number of matching nodes between two flows."""
@@ -10,13 +9,12 @@ class FlowMatchMetric(FlowSimilarityMetric):
     def __init__(self, **kwargs):
         pass
 
-    def compute(self, candidates: List[str], references: List[List[str]], show_progress_bar: bool = False):
-
+    def __call__(
+        self, candidates: list[str], references: list[list[str]]
+    ) -> dict[str, Any]:
         trigger_match_scores = []
         component_match_scores = []
-
-        iterator = tqdm(zip(candidates, references), total=len(candidates)) if show_progress_bar else zip(candidates, references)
-        for candidate, reference in iterator:
+        for candidate, reference in zip(candidates, references):
 
             # assuming there is always one (and only one) reference
             # we pick the first one in any case
@@ -37,28 +35,42 @@ class FlowMatchMetric(FlowSimilarityMetric):
             reference_dict = self.parse_flow_json_with_fallback(reference)
 
             try:
-                trigger_match_score = self.get_trigger_match(candidate_dict, reference_dict)
+                trigger_match_score = self.get_trigger_match(
+                    candidate_dict, reference_dict
+                )
             except Exception as e:
                 trigger_match_score = 0.0
             try:
-                component_match_score = self.get_components_match(candidate_dict, reference_dict)
+                component_match_score = self.get_components_match(
+                    candidate_dict, reference_dict
+                )
             except Exception as e:
                 component_match_score = 0.0
-                
+
             if trigger_match_score is not None:
                 trigger_match_scores.append(trigger_match_score)
             if component_match_score is not None:
                 component_match_scores.append(component_match_score)
-        
-        trigger_match_score = sum(trigger_match_scores) / len(trigger_match_scores) if trigger_match_scores else 0.0
-        component_match_score = sum(component_match_scores) / len(component_match_scores) if component_match_scores else 0.0
+
+        trigger_match_score = (
+            sum(trigger_match_scores) / len(trigger_match_scores)
+            if trigger_match_scores
+            else 0.0
+        )
+        component_match_score = (
+            sum(component_match_scores) / len(component_match_scores)
+            if component_match_scores
+            else 0.0
+        )
 
         return {
             "flow_trigger_match_score": trigger_match_score,
-            "flow_component_match_score": component_match_score
+            "flow_component_match_score": component_match_score,
         }
 
-    def get_trigger_match(self, candidate_dict: dict, reference_dict: dict) -> Optional[bool]:
+    def get_trigger_match(
+        self, candidate_dict: dict, reference_dict: dict
+    ) -> Optional[bool]:
 
         candidate_trigger = candidate_dict.get(Constants.TRIGGER, None)
         reference_trigger = reference_dict.get(Constants.TRIGGER, None)
@@ -72,11 +84,13 @@ class FlowMatchMetric(FlowSimilarityMetric):
             # sort candidate inputs
             candidate_inputs = candidate_trigger.get(Constants.INPUTS, [])
             if candidate_inputs:
-                candidate_inputs = sorted(candidate_inputs, key=lambda x: x.get(Constants.FIELD_NAME, ""))
-            
+                candidate_inputs = sorted(
+                    candidate_inputs, key=lambda x: x.get(Constants.FIELD_NAME, "")
+                )
+
             candidate_trigger_for_comparison = {
                 Constants.TRIGGER_TYPE: candidate_trigger_type,
-                Constants.INPUTS: candidate_inputs
+                Constants.INPUTS: candidate_inputs,
             }
             candidate_trigger_str = json.dumps(candidate_trigger_for_comparison)
 
@@ -86,40 +100,49 @@ class FlowMatchMetric(FlowSimilarityMetric):
             # sort reference inputs
             reference_inputs = reference_trigger.get(Constants.INPUTS, [])
             if reference_inputs:
-                reference_inputs = sorted(reference_inputs, key=lambda x: x.get(Constants.FIELD_NAME, ""))
+                reference_inputs = sorted(
+                    reference_inputs, key=lambda x: x.get(Constants.FIELD_NAME, "")
+                )
 
             reference_trigger_for_comparison = {
                 Constants.TRIGGER_TYPE: reference_trigger_type,
-                Constants.INPUTS: reference_inputs
+                Constants.INPUTS: reference_inputs,
             }
             reference_trigger_str = json.dumps(reference_trigger_for_comparison)
 
         return candidate_trigger_str == reference_trigger_str
-    
 
-    def get_components_match(self, candidate_dict: dict, reference_dict: dict) -> Optional[bool]:
+    def get_components_match(
+        self, candidate_dict: dict, reference_dict: dict
+    ) -> Optional[bool]:
         candidate_components = candidate_dict.get(Constants.COMPONENTS, [])
         reference_components = reference_dict.get(Constants.COMPONENTS, [])
 
         if candidate_components is None or reference_components is None:
             return 0.0
-        elif not isinstance(candidate_components, list) or not isinstance(reference_components, list):
+        elif not isinstance(candidate_components, list) or not isinstance(
+            reference_components, list
+        ):
             return 0.0
-        
+
         def get_component_repr(component_dict: dict) -> str:
             component_category = component_dict.get(Constants.CATEGORY, None)
             component_definition = component_dict.get(Constants.DEFINITION, None)
             component_scope = component_dict.get(Constants.SCOPE, None)
             return f"{component_category}___{component_definition}___{component_scope}"
-        
-        candidate_components_repr = [get_component_repr(component) for component in candidate_components]
-        reference_components_repr = [get_component_repr(component) for component in reference_components]
+
+        candidate_components_repr = [
+            get_component_repr(component) for component in candidate_components
+        ]
+        reference_components_repr = [
+            get_component_repr(component) for component in reference_components
+        ]
 
         intersection = set(candidate_components_repr) & set(reference_components_repr)
         union = set(candidate_components_repr) | set(reference_components_repr)
         matching_components = len(intersection)
         total_components = len(union)
         if total_components == 0:
-            return None        
+            return None
         match_score = matching_components / total_components
         return match_score

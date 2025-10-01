@@ -1,6 +1,6 @@
 from accelerate import dispatch_model, infer_auto_device_map
 from accelerate.utils import gather_object, tqdm
-from accelerate.utils.modeling import get_balanced_memory
+from accelerate.utils.modeling import get_balanced_memory, load_checkpoint_in_model
 from collections import ChainMap
 from omegaconf import OmegaConf
 from starflow.pipeline.utils import (
@@ -9,11 +9,10 @@ from starflow.pipeline.utils import (
     get_accelerator,
     get_config,
     get_logging_dir,
-    get_vl_object,
-    load_model_checkpoint,
     load_prediction_of_example,
     save_example_with_prediction_and_evaluation,
 )
+from starflow.utils import get_vl_object
 import json
 import logging
 import os
@@ -31,9 +30,11 @@ def evaluate():
     accelerator.print(f"Dataset: {config.dataset.name}")
     accelerator.print(f"Model: {config.model.name}")
     accelerator.print(f"Pipeline: {config.pipeline.name}")
-    model_checkpoint_file = load_model_checkpoint(config, vl_model)
-    if model_checkpoint_file is not None:
-        accelerator.print(f"Loaded model checkpoint from {model_checkpoint_file}")
+    if config.pipeline.model_checkpoint_file is not None:
+        load_checkpoint_in_model(vl_model, config.pipeline.model_checkpoint_file)
+        accelerator.print(
+            f"Loaded model checkpoint from {config.pipeline.model_checkpoint_file}"
+        )
     accelerator.print(f"Num processes: {accelerator.num_processes}")
     test_vl_dataset = get_vl_object(
         config.dataset.class_path,
@@ -62,16 +63,14 @@ def evaluate():
             vl_model, device_map=device_map, main_device=accelerator.device
         )
     vl_model.eval()
-    vl_metrics = []
-    for metric in config.dataset.test.metrics:
-        vl_metric = get_vl_object(
-            metric.class_path, **OmegaConf.to_container(metric.init_kwargs)
-        )
-        vl_metrics.append(vl_metric)
-    generation = {}
+    vl_metrics = [
+        get_vl_object(metric.class_path, **OmegaConf.to_container(metric.init_kwargs))
+        for metric in config.dataset.metrics
+    ]
     with accelerator.split_between_processes(
         list(range(len(test_vl_dataset))), apply_padding=True
     ) as indices:
+        generation = {}
         progress_bar = tqdm(desc="Generate", total=len(indices))
         for index in indices:
             accelerator.wait_for_everyone()
@@ -79,11 +78,8 @@ def evaluate():
             prediction = load_prediction_of_example(vl_example, examples_dir)
             if prediction is None:
                 with accelerator.autocast():
-                    prediction = vl_model.generate(
-                        vl_example,
-                        **OmegaConf.to_container(config.model.generate_kwargs),
-                    )
-            generation.update({vl_example.identifier: prediction})
+                    prediction = vl_model.generate(vl_example)
+            generation[vl_example.identifier] = prediction
             evaluation = evaluate_prediction_on_example(
                 vl_example, vl_metrics, prediction
             )

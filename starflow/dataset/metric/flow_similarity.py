@@ -3,11 +3,8 @@ import logging
 import re
 from json.decoder import JSONDecodeError
 from typing import Any, Dict, List, Literal, Optional, Tuple
-
-from tqdm import tqdm
 from zss import Node, distance
-
-from starflow.dataset.metric.vl_metric import VLMetric
+from starflow.dataset.metric.base import VLMetric
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -19,7 +16,9 @@ class FlowSimilarityMetric(VLMetric):
     def __init__(self, **kwargs):
         pass
 
-    def compute(self, candidates: List[str], references: List[List[str]], show_progress_bar: bool = False):
+    def __call__(
+        self, candidates: list[str], references: list[list[str]]
+    ) -> dict[str, Any]:
         """Compute flow similarity with and without inputs for a list of candidates and references.
 
         :param candidates: List of candidate flows in JSON format
@@ -28,8 +27,7 @@ class FlowSimilarityMetric(VLMetric):
         """
         flow_similarities_no_inputs = []
         flow_similarities_with_inputs = []
-        iterator = tqdm(zip(candidates, references), total=len(candidates)) if show_progress_bar else zip(candidates, references)
-        for candidate, reference in iterator:
+        for candidate, reference in zip(candidates, references):
 
             # assuming there is always one (and only one) reference
             # we pick the first one in any case
@@ -51,9 +49,15 @@ class FlowSimilarityMetric(VLMetric):
 
             # compute tree similarity without inputs
             try:
-                candidate_tree_no_inputs = FlowTree(candidate_dict, with_inputs=False, decompose_encoded_queries=False)
-                reference_tree_no_inputs = FlowTree(reference_dict, with_inputs=False, decompose_encoded_queries=False)
-                flow_similarity_no_inputs = self.similarity(candidate_tree_no_inputs, reference_tree_no_inputs)
+                candidate_tree_no_inputs = FlowTree(
+                    candidate_dict, with_inputs=False, decompose_encoded_queries=False
+                )
+                reference_tree_no_inputs = FlowTree(
+                    reference_dict, with_inputs=False, decompose_encoded_queries=False
+                )
+                flow_similarity_no_inputs = self.similarity(
+                    candidate_tree_no_inputs, reference_tree_no_inputs
+                )
                 flow_similarities_no_inputs.append(float(flow_similarity_no_inputs))
             except Exception as e:
                 logger.error(f"Error computing flow similarity without inputs: {e}")
@@ -61,19 +65,32 @@ class FlowSimilarityMetric(VLMetric):
 
             # compute tree similarity with inputs
             try:
-                candidate_tree_with_inputs = FlowTree(candidate_dict, with_inputs=True, decompose_encoded_queries=True)
-                reference_tree_with_inputs = FlowTree(reference_dict, with_inputs=True, decompose_encoded_queries=True)
-                flow_similarity_with_inputs = self.similarity(candidate_tree_with_inputs, reference_tree_with_inputs)
+                candidate_tree_with_inputs = FlowTree(
+                    candidate_dict, with_inputs=True, decompose_encoded_queries=True
+                )
+                reference_tree_with_inputs = FlowTree(
+                    reference_dict, with_inputs=True, decompose_encoded_queries=True
+                )
+                flow_similarity_with_inputs = self.similarity(
+                    candidate_tree_with_inputs, reference_tree_with_inputs
+                )
                 flow_similarities_with_inputs.append(float(flow_similarity_with_inputs))
             except Exception as e:
                 logger.error(f"Error computing flow similarity with inputs: {e}")
                 flow_similarities_with_inputs.append(0)
 
         # compute macro average similarity (no weighting based on flow size)
-        flow_sim_no_inputs = self.get_macro_average_similarity(flow_similarities_no_inputs)
-        flow_sim_with_inputs = self.get_macro_average_similarity(flow_similarities_with_inputs)
+        flow_sim_no_inputs = self.get_macro_average_similarity(
+            flow_similarities_no_inputs
+        )
+        flow_sim_with_inputs = self.get_macro_average_similarity(
+            flow_similarities_with_inputs
+        )
 
-        return {"flow_sim_no_inputs": flow_sim_no_inputs, "flow_sim_with_inputs": flow_sim_with_inputs}
+        return {
+            "flow_sim_no_inputs": flow_sim_no_inputs,
+            "flow_sim_with_inputs": flow_sim_with_inputs,
+        }
 
     @staticmethod
     def get_code_block(flow_json: str) -> str:
@@ -138,7 +155,9 @@ class FlowSimilarityMetric(VLMetric):
         """
         if node1.label == node2.label:
             return 0
-        elif any(node1.label == x for x in Constants.TRIGGER_TYPES) or any(node2.label == x for x in Constants.TRIGGER_TYPES):
+        elif any(node1.label == x for x in Constants.TRIGGER_TYPES) or any(
+            node2.label == x for x in Constants.TRIGGER_TYPES
+        ):
             # special scoring for updating trigger types
             return 2
         elif (
@@ -161,9 +180,13 @@ class FlowSimilarityMetric(VLMetric):
     def edit_distance(self, flow1: "FlowTree", flow2: "FlowTree") -> float:
         """Compute the edit distance between two flows."""
         if flow1.with_inputs != flow2.with_inputs:
-            raise ValueError("Cannot compare a tree with inputs and a tree without inputs")
+            raise ValueError(
+                "Cannot compare a tree with inputs and a tree without inputs"
+            )
         elif flow1.decompose_encoded_queries != flow2.decompose_encoded_queries:
-            raise ValueError("Cannot compare a tree with decomposed encoded queries and a tree without decomposed encoded queries")
+            raise ValueError(
+                "Cannot compare a tree with decomposed encoded queries and a tree without decomposed encoded queries"
+            )
         dist, _ = distance(
             flow1.tree,
             flow2.tree,
@@ -220,9 +243,25 @@ class Constants:
     SCHEDULED_TRIGGER = "scheduled_trigger"
     APPLICATION_TRIGGER = "application_trigger"
 
-    RECORD_TRIGGERS = {RECORD_CREATE_TRIGGER, RECORD_UPDATE_TRIGGER, RECORD_CREATE_OR_UPDATE_TRIGGER}
-    SCHEDULED_TRIGGERS = {DAILY_TRIGGER, WEEKLY_TRIGGER, MONTHLY_TRIGGER, REPEAT_TRIGGER, RUN_ONCE_TRIGGER}
-    APPLICATION_TRIGGERS = {EMAIL_TRIGGER, SLA_TASK_TRIGGER, SERVICE_CATALOG_TRIGGER, METRIC_TRIGGER, REST_ASYNC_TRIGGER}
+    RECORD_TRIGGERS = {
+        RECORD_CREATE_TRIGGER,
+        RECORD_UPDATE_TRIGGER,
+        RECORD_CREATE_OR_UPDATE_TRIGGER,
+    }
+    SCHEDULED_TRIGGERS = {
+        DAILY_TRIGGER,
+        WEEKLY_TRIGGER,
+        MONTHLY_TRIGGER,
+        REPEAT_TRIGGER,
+        RUN_ONCE_TRIGGER,
+    }
+    APPLICATION_TRIGGERS = {
+        EMAIL_TRIGGER,
+        SLA_TASK_TRIGGER,
+        SERVICE_CATALOG_TRIGGER,
+        METRIC_TRIGGER,
+        REST_ASYNC_TRIGGER,
+    }
     TRIGGER_CATEGORIES = {RECORD_TRIGGER, SCHEDULED_TRIGGER, APPLICATION_TRIGGER}
     TRIGGER_TYPES = RECORD_TRIGGERS | SCHEDULED_TRIGGERS | APPLICATION_TRIGGERS
 
@@ -305,10 +344,17 @@ class Constants:
 
 
 class FlowTree:
-    def __init__(self, flow_dict: Dict[str, Any], with_inputs: bool = True, decompose_encoded_queries: bool = True) -> None:
+    def __init__(
+        self,
+        flow_dict: Dict[str, Any],
+        with_inputs: bool = True,
+        decompose_encoded_queries: bool = True,
+    ) -> None:
 
         if with_inputs is False and decompose_encoded_queries is True:
-            logger.warning("Decomposing encoded queries without inputs will not have any effect. Setting `decompose_encoded_queries` to False.")
+            logger.warning(
+                "Decomposing encoded queries without inputs will not have any effect. Setting `decompose_encoded_queries` to False."
+            )
             decompose_encoded_queries = False
 
         self.with_inputs = with_inputs
@@ -319,7 +365,9 @@ class FlowTree:
     # Inputs Related #
     ##################
 
-    def get_tree_from_parsed_parts(self, parsed_parts: List[Dict[str, str]], logical_operators: List[str]) -> Node:
+    def get_tree_from_parsed_parts(
+        self, parsed_parts: List[Dict[str, str]], logical_operators: List[str]
+    ) -> Node:
 
         # first part tree
         first_part = parsed_parts[0]
@@ -336,25 +384,39 @@ class FlowTree:
         # if there are logical operators, we recursively build the tree
         base_tree = Node(logical_operators[0])
         base_tree.addkid(first_part_tree)
-        subtree = self.get_tree_from_parsed_parts(parsed_parts[1:], logical_operators[1:])
+        subtree = self.get_tree_from_parsed_parts(
+            parsed_parts[1:], logical_operators[1:]
+        )
         base_tree.addkid(subtree)
         return base_tree
 
     def get_tree_from_encoded_query(self, encoded_query: str) -> Node:
-        parsed_encoded_query_parts, encoded_query_logical_operators = parse_encoded_query_field(encoded_query)
-        if parsed_encoded_query_parts is None and encoded_query_logical_operators is None:
+        parsed_encoded_query_parts, encoded_query_logical_operators = (
+            parse_encoded_query_field(encoded_query)
+        )
+        if (
+            parsed_encoded_query_parts is None
+            and encoded_query_logical_operators is None
+        ):
             return Node("")  # alternatively, Node("^EQ")
         # for our first version of the tree, we do not consider the order of the logical operators or the encoded query parts
         # in order for the similarity metric to be order agnostic, we sort so that the order of the parts does not affect the similarity
-        parsed_encoded_query_parts = sorted(parsed_encoded_query_parts, key=lambda x: x.get(Constants.FIELD, ""))
+        parsed_encoded_query_parts = sorted(
+            parsed_encoded_query_parts, key=lambda x: x.get(Constants.FIELD, "")
+        )
         encoded_query_logical_operators = sorted(encoded_query_logical_operators)
-        encoded_query_tree = self.get_tree_from_parsed_parts(parsed_encoded_query_parts, encoded_query_logical_operators)
+        encoded_query_tree = self.get_tree_from_parsed_parts(
+            parsed_encoded_query_parts, encoded_query_logical_operators
+        )
         return encoded_query_tree
 
     def get_tree_from_single_input(self, input_json: Dict[str, str]) -> Node:
         input_name = input_json.get(Constants.FIELD_NAME, "")
         input_value = str(input_json.get(Constants.FIELD_VALUE, ""))
-        if self.decompose_encoded_queries and (input_name in Constants.CONDITION_INPUT_NAMES or input_name in Constants.VALUE_INPUT_NAMES):
+        if self.decompose_encoded_queries and (
+            input_name in Constants.CONDITION_INPUT_NAMES
+            or input_name in Constants.VALUE_INPUT_NAMES
+        ):
             # encoded query, we have a `condition` or `value` node, along with the decomposed encoded query tree as child
             input_tree = Node(input_name)
             input_value_tree = self.get_tree_from_encoded_query(input_value)
@@ -389,7 +451,9 @@ class FlowTree:
 
         # trigger inputs
         if self.with_inputs and Constants.TRIGGER_INPUTS in trigger_json:
-            trigger_inputs_tree = self.get_tree_from_inputs(trigger_json.get(Constants.TRIGGER_INPUTS, []))
+            trigger_inputs_tree = self.get_tree_from_inputs(
+                trigger_json.get(Constants.TRIGGER_INPUTS, [])
+            )
             trigger_type_tree.addkid(trigger_inputs_tree)
 
         trigger_tree.addkid(trigger_type_tree)
@@ -408,30 +472,45 @@ class FlowTree:
             input_name = item.get(Constants.FIELD_NAME, "")
             input_type = item.get(Constants.SUBFLOW_INPUT_TYPE, "string")
             input_repr = f"{input_name}: {input_type}"
-            if input_type in (Constants.REFERENCE, Constants.RECORDS) and Constants.REFERENCE in item:
+            if (
+                input_type in (Constants.REFERENCE, Constants.RECORDS)
+                and Constants.REFERENCE in item
+            ):
                 input_reference = item.get(Constants.REFERENCE, "task")
                 input_repr += f" [{input_reference}]"
             subflow_io_tree.addkid(Node(input_repr))
 
         return subflow_io_tree
 
-    def get_tree_from_component(self, component_json: Dict[str, Any], components_json: List[Dict[str, Any]]) -> Node:
+    def get_tree_from_component(
+        self, component_json: Dict[str, Any], components_json: List[Dict[str, Any]]
+    ) -> Node:
 
         # get component info
-        component_category = component_json.get(Constants.CATEGORY, "action")  # default to action
+        component_category = component_json.get(
+            Constants.CATEGORY, "action"
+        )  # default to action
         component_definition = component_json.get(Constants.DEFINITION, "")
         if component_category == Constants.FLOW_LOGIC:
             # HACK: we prompt the model with camelCase for flowlogic elements, but in the reference dataset, they are UPPERCASE
             # we convert to UPPERCASE here
             component_definition = component_definition.upper()
-        component_scope = component_json.get(Constants.SCOPE, "global")  # default to global
-        component_order = component_json.get(Constants.ORDER, -100)  # default to int value that won't be used in flows
-        component_label = f"{component_category}___{component_definition}___{component_scope}"
+        component_scope = component_json.get(
+            Constants.SCOPE, "global"
+        )  # default to global
+        component_order = component_json.get(
+            Constants.ORDER, -100
+        )  # default to int value that won't be used in flows
+        component_label = (
+            f"{component_category}___{component_definition}___{component_scope}"
+        )
         component_tree = Node(component_label)
 
         # add inputs
         if self.with_inputs and Constants.INPUTS in component_json:
-            component_inputs_tree = self.get_tree_from_inputs(component_json.get(Constants.INPUTS, []))
+            component_inputs_tree = self.get_tree_from_inputs(
+                component_json.get(Constants.INPUTS, [])
+            )
             component_tree.addkid(component_inputs_tree)
 
         # if component has children, add them
@@ -442,7 +521,9 @@ class FlowTree:
                 continue
             elif comp.get(Constants.BLOCK, -999) == component_order:
                 # TODO: do we need to truncate the list of components?
-                child_component_tree = self.get_tree_from_component(comp, components_json=components_json)
+                child_component_tree = self.get_tree_from_component(
+                    comp, components_json=components_json
+                )
                 component_tree.addkid(child_component_tree)
 
         return component_tree
@@ -452,7 +533,9 @@ class FlowTree:
         for i, component_json in enumerate(components_json):
             if component_json.get(Constants.BLOCK) is None:
                 # TODO: do we need to truncate the list of components?
-                component_tree = self.get_tree_from_component(component_json, components_json=components_json)
+                component_tree = self.get_tree_from_component(
+                    component_json, components_json=components_json
+                )
                 components_tree.addkid(component_tree)
         return components_tree
 
@@ -461,23 +544,29 @@ class FlowTree:
 
         # trigger
         if Constants.TRIGGER in flow_json:
-            trigger_tree = self.get_tree_from_trigger(flow_json.get(Constants.TRIGGER, None))
+            trigger_tree = self.get_tree_from_trigger(
+                flow_json.get(Constants.TRIGGER, None)
+            )
             flow_tree.addkid(trigger_tree)
 
         if Constants.SUBFLOW_INPUTS in flow_json:
             subflow_inputs_tree = self.get_tree_from_subflow_io(
-                flow_json.get(Constants.SUBFLOW_INPUTS, []), subflow_io_type=Constants.SUBFLOW_INPUTS
+                flow_json.get(Constants.SUBFLOW_INPUTS, []),
+                subflow_io_type=Constants.SUBFLOW_INPUTS,
             )
             flow_tree.addkid(subflow_inputs_tree)
         if Constants.SUBFLOW_OUTPUTS in flow_json:
             subflow_outputs_tree = self.get_tree_from_subflow_io(
-                flow_json.get(Constants.SUBFLOW_OUTPUTS, []), subflow_io_type=Constants.SUBFLOW_OUTPUTS
+                flow_json.get(Constants.SUBFLOW_OUTPUTS, []),
+                subflow_io_type=Constants.SUBFLOW_OUTPUTS,
             )
             flow_tree.addkid(subflow_outputs_tree)
 
         # components
         if Constants.COMPONENTS in flow_json:
-            components_tree = self.get_tree_from_components(flow_json.get(Constants.COMPONENTS, []))
+            components_tree = self.get_tree_from_components(
+                flow_json.get(Constants.COMPONENTS, [])
+            )
             flow_tree.addkid(components_tree)
 
         return flow_tree
@@ -496,7 +585,9 @@ class FlowTree:
         return len(flow_nodes)
 
 
-def parse_encoded_query_field(input_str: str) -> Tuple[Optional[List[Dict[str, str]]], Optional[List[str]]]:
+def parse_encoded_query_field(
+    input_str: str,
+) -> Tuple[Optional[List[Dict[str, str]]], Optional[List[str]]]:
     """Parse the encoded query field into sections. Return None if the input is not valid.
 
     :param input_str: Encoded query field
@@ -513,15 +604,25 @@ def parse_encoded_query_field(input_str: str) -> Tuple[Optional[List[Dict[str, s
         input_str.removeprefix(logical_operator)
 
     # split by logical operators
-    field_parts, logical_operators = split_encoded_query_field_with_logical_operators(input_str)
+    field_parts, logical_operators = split_encoded_query_field_with_logical_operators(
+        input_str
+    )
 
     parsed_parts = []
     for part in field_parts:
         # split by comparison operators
-        comparison_parts, comparison_operators = split_encoded_query_field_with_comparison_operators(part)
+        comparison_parts, comparison_operators = (
+            split_encoded_query_field_with_comparison_operators(part)
+        )
         if len(comparison_parts) != 2 or len(comparison_operators) != 1:
             return None, None
-        parsed_parts.append({"field": comparison_parts[0], "operator": comparison_operators[0], "value": comparison_parts[1]})
+        parsed_parts.append(
+            {
+                "field": comparison_parts[0],
+                "operator": comparison_operators[0],
+                "value": comparison_parts[1],
+            }
+        )
 
     return parsed_parts, logical_operators
 
@@ -546,28 +647,34 @@ def split_encoded_query_field_with_operators(
     split_result = re.split(operator_pattern, input_str)
 
     # make sure the operator is not in the split result
-    split_result = [elem for elem in split_result if elem.strip() not in operators_found]
+    split_result = [
+        elem for elem in split_result if elem.strip() not in operators_found
+    ]
 
     return split_result, operators_found
 
 
-def split_encoded_query_field_with_logical_operators(input_str: str) -> Tuple[List[str], List[str]]:
+def split_encoded_query_field_with_logical_operators(
+    input_str: str,
+) -> Tuple[List[str], List[str]]:
     """Split the encoded query field into parts using the logical operators as separators.
 
     :param input_str: Encoded query field
     :return: Tuple containing the split parts and the logical operators found
     """
-    return split_encoded_query_field_with_operators(input_str, Constants.LOGICAL_OPERATORS)
+    return split_encoded_query_field_with_operators(
+        input_str, Constants.LOGICAL_OPERATORS
+    )
 
 
-def split_encoded_query_field_with_comparison_operators(input_str: str) -> Tuple[List[str], List[str]]:
+def split_encoded_query_field_with_comparison_operators(
+    input_str: str,
+) -> Tuple[List[str], List[str]]:
     """Split the encoded query field into parts using the comparison operators as separators.
 
     :param input_str: Encoded query field
     :return: Tuple containing the split parts and the comparison operators found
     """
-    return split_encoded_query_field_with_operators(input_str, Constants.COMPARISON_OPERATORS, exclusion_pattern="(?<![A-Z=,])")
-
-
-if __name__ == "__main__":
-    print("done!")
+    return split_encoded_query_field_with_operators(
+        input_str, Constants.COMPARISON_OPERATORS, exclusion_pattern="(?<![A-Z=,])"
+    )

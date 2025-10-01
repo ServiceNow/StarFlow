@@ -1,17 +1,26 @@
-from typing import List
-from starflow.dataset.metric.vl_metrics.flow_similarity import FlowSimilarityMetric, FlowTree, Constants
-from tqdm import tqdm
+from typing import Any
+from starflow.dataset.metric.flow_similarity import (
+    FlowSimilarityMetric,
+    FlowTree,
+    Constants,
+)
 import logging
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+
 class FlowBLEUMetric(FlowSimilarityMetric):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.EXCLUSION_LIST = [(Constants.FLOW, Constants.TRIGGER), (Constants.FLOW, Constants.COMPONENTS)]
+        self.EXCLUSION_LIST = [
+            (Constants.FLOW, Constants.TRIGGER),
+            (Constants.FLOW, Constants.COMPONENTS),
+        ]
 
-    def compute(self, candidates: List[str], references: List[List[str]], show_progress_bar: bool = False):
+    def __call__(
+        self, candidates: list[str], references: list[list[str]]
+    ) -> dict[str, Any]:
         """Compute flow similarity with and without inputs for a list of candidates and references.
 
         :param candidates: List of candidate flows in JSON format
@@ -20,8 +29,7 @@ class FlowBLEUMetric(FlowSimilarityMetric):
         """
         all_flow_bleu_no_inputs = []
         all_flow_bleu_with_inputs = []
-        iterator = tqdm(zip(candidates, references), total=len(candidates)) if show_progress_bar else zip(candidates, references)
-        for candidate, reference in iterator:
+        for candidate, reference in zip(candidates, references):
 
             # assuming there is always one (and only one) reference
             # we pick the first one in any case
@@ -43,9 +51,15 @@ class FlowBLEUMetric(FlowSimilarityMetric):
 
             # compute tree similarity without inputs
             try:
-                candidate_tree_no_inputs = FlowTree(candidate_dict, with_inputs=False, decompose_encoded_queries=False)
-                reference_tree_no_inputs = FlowTree(reference_dict, with_inputs=False, decompose_encoded_queries=False)
-                flow_bleu_no_inputs = self.compute_treebleu(candidate_tree_no_inputs, reference_tree_no_inputs)
+                candidate_tree_no_inputs = FlowTree(
+                    candidate_dict, with_inputs=False, decompose_encoded_queries=False
+                )
+                reference_tree_no_inputs = FlowTree(
+                    reference_dict, with_inputs=False, decompose_encoded_queries=False
+                )
+                flow_bleu_no_inputs = self.compute_treebleu(
+                    candidate_tree_no_inputs, reference_tree_no_inputs
+                )
                 all_flow_bleu_no_inputs.append(float(flow_bleu_no_inputs))
             except Exception as e:
                 logger.error(f"Error computing FlowBLEU without inputs: {e}")
@@ -53,9 +67,15 @@ class FlowBLEUMetric(FlowSimilarityMetric):
 
             # compute tree similarity with inputs
             try:
-                candidate_tree_with_inputs = FlowTree(candidate_dict, with_inputs=True, decompose_encoded_queries=True)
-                reference_tree_with_inputs = FlowTree(reference_dict, with_inputs=True, decompose_encoded_queries=True)
-                flow_bleu_with_inputs = self.compute_treebleu(candidate_tree_with_inputs, reference_tree_with_inputs)
+                candidate_tree_with_inputs = FlowTree(
+                    candidate_dict, with_inputs=True, decompose_encoded_queries=True
+                )
+                reference_tree_with_inputs = FlowTree(
+                    reference_dict, with_inputs=True, decompose_encoded_queries=True
+                )
+                flow_bleu_with_inputs = self.compute_treebleu(
+                    candidate_tree_with_inputs, reference_tree_with_inputs
+                )
                 all_flow_bleu_with_inputs.append(float(flow_bleu_with_inputs))
             except Exception as e:
                 logger.error(f"Error computing FlowBLEU with inputs: {e}")
@@ -63,10 +83,14 @@ class FlowBLEUMetric(FlowSimilarityMetric):
 
         # compute macro average similarity (no weighting based on flow size)
         flow_bleu_no_inputs = self.get_macro_average_similarity(all_flow_bleu_no_inputs)
-        flow_bleu_with_inputs = self.get_macro_average_similarity(all_flow_bleu_with_inputs)
+        flow_bleu_with_inputs = self.get_macro_average_similarity(
+            all_flow_bleu_with_inputs
+        )
 
-        return {"flow_bleu_no_inputs": flow_bleu_no_inputs, "flow_bleu_with_inputs": flow_bleu_with_inputs}
-
+        return {
+            "flow_bleu_no_inputs": flow_bleu_no_inputs,
+            "flow_bleu_with_inputs": flow_bleu_with_inputs,
+        }
 
     def extract_1_height_subtrees(self, flow_tree: FlowTree) -> set[tuple[str, str]]:
         """
@@ -86,7 +110,9 @@ class FlowBLEUMetric(FlowSimilarityMetric):
         traverse(flow_tree.tree)
         return subtrees
 
-    def compute_treebleu(self, generated_flow_tree: FlowTree, reference_flow_tree: FlowTree) -> float:
+    def compute_treebleu(
+        self, generated_flow_tree: FlowTree, reference_flow_tree: FlowTree
+    ) -> float:
         """
         Computes the TreeBLEU score given a generated and reference zss.Node tree.
         Borrowed from https://github.com/ServiceNow/star-markup/blob/003f04e4ce28bc18db2f09f88e76f64f77f30b4e/starweb_bench/eval/eval_codeedit.py#L150C1-L164C51

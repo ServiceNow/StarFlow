@@ -6,20 +6,6 @@ build-backend = "setuptools.build_meta"
 name = "StarFlow"
 version = "1.0.0"
 requires-python = ">=3.11, <3.12"
-dependencies = [
-    "accelerate",
-    "backoff",
-    "datasets",
-    "omegaconf",
-    "openai",
-    "pillow",
-    "torch",
-    "torchvision",
-    "tqdm",
-    "transformers",
-    "wandb",
-    "zss"
-]
 
 [tool.setuptools.packages.find]
 include = ["starflow*"]

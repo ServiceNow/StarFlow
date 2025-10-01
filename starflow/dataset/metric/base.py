@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from typing import Any
 
 
 class VLMetric(ABC):
@@ -7,5 +8,7 @@ class VLMetric(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def compute(self, candidates: list[str], references: list[list[str]]):
+    def __call__(
+        self, candidates: list[str], references: list[list[str]]
+    ) -> dict[str, Any]:
         raise NotImplementedError

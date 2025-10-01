@@ -1,12 +1,6 @@
 pipeline:
   name: train
-  source_logging_dir: null
-  resume_overall_step: null
-  max_grad_norm: 1.0
-  num_warmup_steps: 50
-  num_steps_per_checkpoint: 500
-  num_epochs: 5
-  fsdp_plugin_kwargs:
+  fsdp_kwargs:
     sharding_strategy: FULL_SHARD
     backward_prefetch: BACKWARD_PRE
     cpu_offload: false
@@ -25,10 +19,22 @@ pipeline:
     log_with:
       - wandb
     step_scheduler_with_optimizer: true
-  adamw_optimizer_kwargs:
+  data_loader_kwargs:
+    batch_size: 2
+    shuffle: true
+    num_workers: 2
+    pin_memory: true
+  adamw_kwargs:
     lr: 2e-5
     betas:
       - 0.95
       - 0.999
     weight_decay: 1.0e-06
     eps: 1e-08
+  model_checkpoint_file: null
+  source_logging_dir: null
+  resume_overall_step: null
+  max_grad_norm: 1.0
+  num_warmup_steps: 50
+  num_steps_per_checkpoint: 500
+  num_epochs: 5
