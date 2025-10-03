@@ -1,5 +1,5 @@
-[ -d ~/starflow_deepseek ] || uv venv ~/starflow_deepseek --python 3.11 --seed
-source ~/starflow_deepseek/bin/activate
+[ -d ~/uv_home/starflow_deepseek ] || uv venv ~/uv_home/starflow_deepseek --python 3.11 --seed
+source ~/uv_home/starflow_deepseek/bin/activate
 pip install pip setuptools --upgrade
 pip install torch torchvision xformers --index-url https://download.pytorch.org/whl/cu128
 pip install flash-attn --no-build-isolation
