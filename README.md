@@ -8,25 +8,25 @@ StarFlow is based on StarVLM, a framework for training and evaluating vision-lan
 
 Models are divided into local models and API models:
 
-- Local models are encapsulated as sub-classes of [`VLLocalModel`](starvlm/model/base.py), and their inputs are encapsulated as sub-classes of [`VLLocalInput`](starvlm/model/base.py). For example, the Qwen3-VL models (e.g., `Qwen/Qwen3-VL-8B-Instruct`, `Qwen/Qwen3-VL-32B-Instruct`, etc.) are instances of [`QwenModel`](starvlm/model/qwen_3.py), and their inputs are instances of [`QwenInput`](starvlm/model/qwen_3.py).
+- Local models are encapsulated as sub-classes of [`VLLocalModel`](starvlm/model/base.py), and their inputs are encapsulated as sub-classes of [`VLLocalInput`](starvlm/model/base.py). For example, the Qwen3-VL models (`Qwen/Qwen3-VL-8B-Instruct`, `Qwen/Qwen3-VL-32B-Instruct`, etc.) are implemented as [`QwenModel`](starvlm/model/qwen_3.py), and their inputs are implemented as [`QwenInput`](starvlm/model/qwen_3.py).
 
-- API models are encapsulated as sub-classes of [`VLAPIModel`](starvlm/model/base.py). For example, the OpenAI-compatible API models (e.g., `openai/gpt-4o`, `anthropic/claude-3.7-sonnet`, etc.) are instances of [`OpenAIModel`](starvlm/model/openai.py). The inputs of API models are [`VLAPIConversation`](starvlm/model/base.py) instances, each of which is a sequence of [`VLAPIMessage`](starvlm/model/base.py) instances.
+- API models are encapsulated as sub-classes of [`VLAPIModel`](starvlm/model/base.py). For example, the OpenAI-compatible API models (`openai/gpt-4o`, `anthropic/claude-3.7-sonnet`, etc.) are implemented as [`OpenAIModel`](starvlm/model/openai.py). The inputs of API models are [`VLAPIConversation`](starvlm/model/base.py) instances, each of which is a sequence of [`VLAPIMessage`](starvlm/model/base.py) instances.
 
-Each local model and API model is bound to a config file specifying how to instantiate and use the model. For example, the config file for local model `Qwen/Qwen3-VL-8B-Instruct` is [`starvlm/config/model/qwen_3_vl_8b.yaml`](starvlm/config/model/qwen_3_vl_8b.yaml), and that for API model `openai/gpt-4o` is [`starvlm/config/model/gpt_4o.yaml`](starvlm/config/model/gpt_4o.yaml).
+Each local and API model is bound to a config file. For example, local model `Qwen/Qwen3-VL-8B-Instruct` is bound to config file [`starvlm/config/model/qwen_3_vl_8b.yaml`](starvlm/config/model/qwen_3_vl_8b.yaml), and API model `openai/gpt-4o` is bound to config file [`starvlm/config/model/gpt_4o.yaml`](starvlm/config/model/gpt_4o.yaml).
 
 ### Datasets
 
-Datasets are encapsulated as sub-classes of [`VLDataset`](starvlm/dataset/base.py). For example, dataset `ServiceNow/BigDocs-Sketch2Flow` is an instance of [`BigDocsDataset`](starvlm/dataset/bigdocs.py). The data examples in a dataset are [`VLExample`](starvlm/dataset/base.py) instances. Each dataset is bound to a config file specifying how to instantiate and use the dataset. For example, the config file for dataset `ServiceNow/BigDocs-Sketch2Flow` is [`starvlm/config/dataset/bigdocs_sketch2flow.yaml`](starvlm/config/dataset/bigdocs_sketch2flow.yaml).
+Datasets are encapsulated as sub-classes of [`VLDataset`](starvlm/dataset/base.py). For example, dataset `ServiceNow/BigDocs-Sketch2Flow` is implemented as [`BigDocsDataset`](starvlm/dataset/bigdocs.py). Data examples in a dataset are [`VLExample`](starvlm/dataset/base.py) instances. Each dataset is bound to a config file. For example, dataset `ServiceNow/BigDocs-Sketch2Flow` is bound to config file [`starvlm/config/dataset/bigdocs_sketch2flow.yaml`](starvlm/config/dataset/bigdocs_sketch2flow.yaml).
 
 ### Pipelines
 
 Three pipelines are implemented:
 
-- FSDP training pipeline: the pipeline for training a local model on one or more datasets using FSDP. It is implemented as script [`starvlm/pipeline/train_fsdp.py`](starvlm/pipeline/train_fsdp.py) and comes with two config files: [`starvlm/config/pipeline/train_fsdp_1.yaml`](starvlm/config/pipeline/train_fsdp_1.yaml) for using FSDP1 and [`starvlm/config/pipeline/train_fsdp_2.yaml`](starvlm/config/pipeline/train_fsdp_2.yaml) for using FSDP2.
+- FSDP training pipeline: the pipeline for training a local model on one or more datasets using FSDP. It is implemented as script [`starvlm/pipeline/train_fsdp.py`](starvlm/pipeline/train_fsdp.py), and bound to two config files: [`starvlm/config/pipeline/train_fsdp_1.yaml`](starvlm/config/pipeline/train_fsdp_1.yaml) for using FSDP1, and [`starvlm/config/pipeline/train_fsdp_2.yaml`](starvlm/config/pipeline/train_fsdp_2.yaml) for using FSDP2.
 
-- Local model evaluation pipeline: the pipeline for evaluating a local model on a dataset. It is implemented as script [`starvlm/pipeline/evaluate_local.py`](starvlm/pipeline/evaluate_local.py) and comes with config file [`starvlm/config/pipeline/evaluate_local.yaml`](starvlm/config/pipeline/evaluate_local.yaml).
+- Local model evaluation pipeline: the pipeline for evaluating a local model on a dataset. It is implemented as script [`starvlm/pipeline/evaluate_local.py`](starvlm/pipeline/evaluate_local.py), and bound to config file [`starvlm/config/pipeline/evaluate_local.yaml`](starvlm/config/pipeline/evaluate_local.yaml).
 
-- API model evaluation pipeline: the pipeline for evaluating an API model on a dataset. It is implemented as script [`starvlm/pipeline/evaluate_api.py`](starvlm/pipeline/evaluate_api.py) and comes with config file [`starvlm/config/pipeline/evaluate_api.yaml`](starvlm/config/pipeline/evaluate_api.yaml).
+- API model evaluation pipeline: the pipeline for evaluating an API model on a dataset. It is implemented as script [`starvlm/pipeline/evaluate_api.py`](starvlm/pipeline/evaluate_api.py), and bound to config file [`starvlm/config/pipeline/evaluate_api.yaml`](starvlm/config/pipeline/evaluate_api.yaml).
 
 ## Environment Setup
 
@@ -35,9 +35,9 @@ Three pipelines are implemented:
 1. Edit `~/.secret` (create it if missing)
 
 ```shell
-export HF_TOKEN=<YOUR_HF_TOKEN>
-export WANDB_API_KEY=<YOUR_WANDB_API_KEY>
-export OPENAI_API_KEY=<YOUR_OPENAI_API_KEY>
+export HF_TOKEN=<HF_TOKEN>
+export WANDB_API_KEY=<WANDB_API_KEY>
+export OPENAI_API_KEY=<OPENAI_API_KEY>
 ...
 ```
 
@@ -46,13 +46,13 @@ export OPENAI_API_KEY=<YOUR_OPENAI_API_KEY>
 ```shell
 source ~/.secret
 # home directory of venvs
-export UV_HOME=<PATH_TO_UV_HOME>
+export UV_HOME=<UV_HOME>
 # root directory of logs
-export LOGGING_ROOT=<PATH_TO_LOGGING_ROOT>
+export LOGGING_ROOT=<LOGGING_ROOT>
 ...
 ```
 
-3. Clone repository and install packages
+3. Clone repository and run installers to create venvs
 
 ```shell
 git clone https://github.com/ServiceNow/StarFlow.git
@@ -71,47 +71,41 @@ bash installer/vllm/install.sh
 
 ### Notes
 
-Activate a proper venv to conduct experiments:
+Before conducting experiments, activate the proper venv:
 
-- venv created by default installer: `${UV_HOME}/starvlm_default`
-
-- venv created by phi35 installer: `${UV_HOME}/starvlm_phi35`
-
-- venv created by phi4 installer: `${UV_HOME}/starvlm_phi4`
-
-- venv created by deepseek installer: `${UV_HOME}/starvlm_deepseek`
-
-- venv created by vllm installer: `${UV_HOME}/starvlm_vllm`
+```shell
+source ${UV_HOME}/starvlm_<installer_name>/bin/activate
+```
 
 ## Experiment Guide
 
 ### Commands
 
-1. Train local models
+1. Train a local model
 
 ```shell
 torchrun --nproc-per-node 2 starvlm/pipeline/train_fsdp.py --pipeline_name train_fsdp_2 --model_name qwen_3_vl_8b --dataset_names bigdocs_sketch2flow
 ```
 
-2. Evaluate local models
+2. Evaluate a local model
 
 ```shell
 torchrun --nproc-per-node 2 starvlm/pipeline/evaluate_local.py --pipeline_name evaluate_local --model_name qwen_3_vl_8b --dataset_name bigdocs_sketch2flow
 ```
 
-3. Evaluate large local models (e.g. `Qwen/Qwen3-VL-32B-Instruct`)
+3. Evaluate a large local model (e.g. `Qwen/Qwen3-VL-32B-Instruct`)
 
 ```shell
 python starvlm/pipeline/evaluate_local.py --pipeline_name evaluate_local --model_name qwen_3_vl_32b --dataset_name bigdocs_sketch2flow
 ```
 
-4. Evaluate API models (e.g. `openai/gpt-4o`)
+4. Evaluate an API model (e.g. `openai/gpt-4o`)
 
 ```shell
 python starvlm/pipeline/evaluate_api.py --pipeline_name evaluate_api --model_name gpt_4o --dataset_name bigdocs_sketch2flow
 ```
 
-5. Evaluate vLLM-served API models (e.g. `Qwen/Qwen3-VL-8B-Instruct`)
+5. Evaluate a vLLM-served API model (e.g. `Qwen/Qwen3-VL-8B-Instruct`)
 
 ```shell
 vllm serve Qwen/Qwen3-VL-8B-Instruct --max-num-seqs 4 --tensor-parallel-size 2 --dtype bfloat16 --host 0.0.0.0 --port 8000
