@@ -1,0 +1,32 @@
+accelerator_kwargs:
+  device_placement: true
+  mixed_precision: bf16
+  gradient_accumulation_steps: 2
+  cpu: false
+  step_scheduler_with_optimizer: true
+fsdp_kwargs:
+  fsdp_version: 2
+  reshard_after_forward: true
+  cpu_offload: false
+  state_dict_type: FULL_STATE_DICT
+  limit_all_gathers: true
+  activation_checkpointing: true
+  cpu_ram_efficient_loading: true
+data_loader_kwargs:
+  batch_size: 2
+  shuffle: true
+  num_workers: 2
+  pin_memory: true
+adamw_kwargs:
+  lr: 2e-5
+  betas:
+    - 0.95
+    - 0.999
+  weight_decay: 1.0e-06
+  eps: 1e-08
+model_checkpoint: null
+source_logging_dir: null
+grad_max_norm: 1.0
+warmup_ratio: 0.05
+num_steps_per_checkpoint: 500
+num_epochs: 3

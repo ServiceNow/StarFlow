@@ -1,6 +1,0 @@
-pipeline:
-  name: evaluate
-  accelerator_kwargs:
-    mixed_precision: bf16
-    cpu: false
-  model_checkpoint_file: null

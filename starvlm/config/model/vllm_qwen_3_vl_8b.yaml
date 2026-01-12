@@ -1,0 +1,10 @@
+class_path: starvlm.model.openai.OpenAIModel
+init_kwargs:
+  base_url: http://localhost:8000/v1
+  model_path: Qwen/Qwen3-VL-8B-Instruct
+  generate_kwargs:
+    max_tokens: 8192
+    temperature: 0.0
+coordinates_adapter:
+  class_path: starvlm.model.coordinates_adapter.qwen_3.QwenCoordinatesAdapter
+  init_kwargs: {}

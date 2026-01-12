@@ -1,0 +1,38 @@
+class_path: starvlm.dataset.bigdocs.BigDocsDataset
+train:
+  init_kwargs:
+    dataset_path: ServiceNow/BigDocs-Sketch2Flow
+    subset: null
+    split: train
+    is_local: false
+    filter_fn: null
+    min_image_size: 16
+    max_image_size: 4096
+    dummy_image_size: 224
+validate:
+  init_kwargs:
+    dataset_path: ServiceNow/BigDocs-Sketch2Flow
+    subset: null
+    split: val
+    is_local: false
+    filter_fn: null
+    min_image_size: 16
+    max_image_size: 4096
+    dummy_image_size: 224
+test:
+  init_kwargs:
+    dataset_path: ServiceNow/BigDocs-Sketch2Flow
+    subset: null
+    split: test
+    is_local: false
+    filter_fn: null
+    min_image_size: 16
+    max_image_size: 4096
+    dummy_image_size: 224
+  metrics:
+    - class_path: starvlm.dataset.metric.flow_similarity.FlowSimilarityMetric
+      init_kwargs: {}
+    - class_path: starvlm.dataset.metric.flow_match.FlowMatchMetric
+      init_kwargs: {}
+    - class_path: starvlm.dataset.metric.flow_bleu.FlowBLEUMetric
+      init_kwargs: {}

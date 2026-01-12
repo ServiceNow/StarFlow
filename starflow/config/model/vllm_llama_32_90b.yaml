@@ -1,9 +1,0 @@
-model:
-  name: vllm_llama_32_90b
-  class_path: starflow.model.openai.OpenAIModel
-  init_kwargs:
-    base_url: http://localhost:8000/v1
-    model_path: meta-llama/Llama-3.2-90B-Vision-Instruct
-    generate_kwargs:
-      max_tokens: 8192
-      temperature: 0.0

@@ -1,0 +1,17 @@
+class_path: starvlm.model.qwen_3.QwenModel
+init_kwargs:
+  model_path: Qwen/Qwen3-VL-2B-Instruct
+  dtype: bfloat16
+  attn_implementation: flash_attention_2
+  ignore_index: -100
+  max_length: 8192
+  requires_grad_kwargs:
+    language_model_requires_grad: true
+    vision_model_requires_grad: true
+    connector_requires_grad: true
+  generate_kwargs:
+    max_new_tokens: 8192
+    do_sample: false
+coordinates_adapter:
+  class_path: starvlm.model.coordinates_adapter.qwen_3.QwenCoordinatesAdapter
+  init_kwargs: {}

@@ -1,3 +1,0 @@
-pipeline:
-  name: evaluate_api
-  num_processes: 8

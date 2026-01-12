@@ -1,8 +1,36 @@
 # StarFlow: Generating Structured Workflow Outputs From Sketch Images
 
-## Development Environment
+## Concept Introduction
 
-1. Edit `~/.secret` (create a new file if it does not exist)
+StarFlow is based on StarVLM, a framework for training and evaluating vision-language models. StarVLM consists of three categories of components: models, datasets, and pipelines.
+
+### Models
+
+Models are divided into local models and API models:
+
+- Local models are encapsulated as sub-classes of [`VLLocalModel`](starvlm/model/base.py), and their inputs are encapsulated as sub-classes of [`VLLocalInput`](starvlm/model/base.py). For example, the Qwen3-VL models (e.g., `Qwen/Qwen3-VL-8B-Instruct`, `Qwen/Qwen3-VL-32B-Instruct`, etc.) are instances of [`QwenModel`](starvlm/model/qwen_3.py), and their inputs are instances of [`QwenInput`](starvlm/model/qwen_3.py).
+
+- API models are encapsulated as sub-classes of [`VLAPIModel`](starvlm/model/base.py). For example, the OpenAI-compatible API models (e.g., `openai/gpt-4o`, `anthropic/claude-3.7-sonnet`, etc.) are instances of [`OpenAIModel`](starvlm/model/openai.py). The inputs of API models are [`VLAPIConversation`](starvlm/model/base.py) instances, each of which is a sequence of [`VLAPIMessage`](starvlm/model/base.py) instances.
+
+Each local model and API model is bound to a config file specifying how to instantiate and use the model. For example, the config file for local model `Qwen/Qwen3-VL-8B-Instruct` is [`starvlm/config/model/qwen_3_vl_8b.yaml`](starvlm/config/model/qwen_3_vl_8b.yaml), and that for API model `openai/gpt-4o` is [`starvlm/config/model/gpt_4o.yaml`](starvlm/config/model/gpt_4o.yaml).
+
+### Datasets
+
+Datasets are encapsulated as sub-classes of [`VLDataset`](starvlm/dataset/base.py). For example, dataset `ServiceNow/BigDocs-Sketch2Flow` is an instance of [`BigDocsDataset`](starvlm/dataset/bigdocs.py). The data examples in a dataset are [`VLExample`](starvlm/dataset/base.py) instances. Each dataset is bound to a config file specifying how to instantiate and use the dataset. For example, the config file for dataset `ServiceNow/BigDocs-Sketch2Flow` is [`starvlm/config/dataset/bigdocs_sketch2flow.yaml`](starvlm/config/dataset/bigdocs_sketch2flow.yaml).
+
+### Pipelines
+
+Three pipelines are implemented:
+
+- FSDP training pipeline: the pipeline for training a local model on one or more datasets using FSDP. It is implemented as script [`starvlm/pipeline/train_fsdp.py`](starvlm/pipeline/train_fsdp.py) and comes with two config files: [`starvlm/config/pipeline/train_fsdp_1.yaml`](starvlm/config/pipeline/train_fsdp_1.yaml) for using FSDP1 and [`starvlm/config/pipeline/train_fsdp_2.yaml`](starvlm/config/pipeline/train_fsdp_2.yaml) for using FSDP2.
+
+- Local model evaluation pipeline: the pipeline for evaluating a local model on a dataset. It is implemented as script [`starvlm/pipeline/evaluate_local.py`](starvlm/pipeline/evaluate_local.py) and comes with config file [`starvlm/config/pipeline/evaluate_local.yaml`](starvlm/config/pipeline/evaluate_local.yaml).
+
+- API model evaluation pipeline: the pipeline for evaluating an API model on a dataset. It is implemented as script [`starvlm/pipeline/evaluate_api.py`](starvlm/pipeline/evaluate_api.py) and comes with config file [`starvlm/config/pipeline/evaluate_api.yaml`](starvlm/config/pipeline/evaluate_api.yaml).
+
+## Environment Setup
+
+1. Edit `~/.secret` (create it if missing)
 
 ```shell
 export HF_TOKEN=<HF_TOKEN>
@@ -11,113 +39,74 @@ export OPENAI_API_KEY=<OPENAI_API_KEY>
 ...
 ```
 
-2. Edit `~/.bashrc` (create a new file if it does not exist)
+2. Edit `~/.bashrc` (create it if missing)
 
 ```shell
 source ~/.secret
 ...
 ```
 
-3. Clone the repository and install packages
+3. Clone repository and install packages
 
 ```shell
 git clone https://github.com/ServiceNow/StarFlow.git
 cd StarFlow
-# For training and evaluating Llama, Qwen, Pixtral, and API models
+# for Llama, Qwen, Gemma, Pixtral, and API models
 bash installer/default/install.sh
-# For training and evaluating Phi-3.5 model
+# for Phi-3.5 model
 bash installer/phi35/install.sh
-# For training and evaluating Phi-4 model
+# for Phi-4 model
 bash installer/phi4/install.sh
-# For training and evaluating DeepSeek models
+# for DeepSeek-VL2 model
 bash installer/deepseek/install.sh
-# For evaluating vLLM-served models
+# for vLLM-served API models
 bash installer/vllm/install.sh
 ```
 
-## Training and Evaluation Guide
+## Experiment Guide
 
 ### Commands
 
-1. Train models
+1. Train local models
 
 ```shell
-torchrun --nproc-per-node 2 starflow/pipeline/train.py dataset_name=bigdocs_sketch2flow model_name=llama_32_11b pipeline_name=train
+torchrun --nproc-per-node 2 starvlm/pipeline/train_fsdp.py --pipeline_name train_fsdp_2 --model_name qwen_3_vl_8b --dataset_names bigdocs_sketch2flow
 ```
 
-2. Evaluate models
+2. Evaluate local models
 
 ```shell
-torchrun --nproc-per-node 2 starflow/pipeline/evaluate.py dataset_name=bigdocs_sketch2flow model_name=llama_32_11b pipeline_name=evaluate
+torchrun --nproc-per-node 2 starvlm/pipeline/evaluate_local.py --pipeline_name evaluate_local --model_name qwen_3_vl_8b --dataset_name bigdocs_sketch2flow
 ```
 
-3. Evaluate very large models (e.g. Llama-3.2-90B-Vision-Instruct)
+3. Evaluate large local models (e.g. `Qwen/Qwen3-VL-32B-Instruct`)
 
 ```shell
-python starflow/pipeline/evaluate.py dataset_name=bigdocs_sketch2flow model_name=llama_32_90b pipeline_name=evaluate
+python starvlm/pipeline/evaluate_local.py --pipeline_name evaluate_local --model_name qwen_3_vl_32b --dataset_name bigdocs_sketch2flow
 ```
 
-4. Evaluate API models (e.g. GPT-4o)
+4. Evaluate API models (e.g. `openai/gpt-4o`)
 
 ```shell
-python starflow/pipeline/evaluate_api.py dataset_name=bigdocs_sketch2flow model_name=gpt_4o pipeline_name=evaluate_api
+python starvlm/pipeline/evaluate_api.py --pipeline_name evaluate_api --model_name gpt_4o --dataset_name bigdocs_sketch2flow
 ```
 
-5. Evaluate vLLM-served models (e.g. Qwen2.5-VL-7B-Instruct)
+5. Evaluate vLLM-served API models (e.g. `Qwen/Qwen3-VL-8B-Instruct`)
 
 ```shell
-python starflow/pipeline/evaluate_api.py dataset_name=bigdocs_sketch2flow model_name=vllm_qwen_25_vl_7b pipeline_name=evaluate_api
+vllm serve Qwen/Qwen3-VL-8B-Instruct --max-num-seqs 4 --tensor-parallel-size 2 --dtype bfloat16 --host 0.0.0.0 --port 8000
+python starvlm/pipeline/evaluate_api.py --pipeline_name evaluate_api --model_name vllm_qwen_3_vl_8b --dataset_name bigdocs_sketch2flow
 ```
 
 ### Notes
 
-1. Before running the commands, properly set the values in the involved config files.
+Before running the above commands, properly set the values in the involved config files:
 
-2. Before evaluating vLLM-served models, start vLLM as follows:
+- pipeline config file: `starvlm/config/pipeline/<pipeline_name>.yaml`
 
-```shell
-vllm serve Qwen/Qwen2.5-VL-7B-Instruct --max-num-seqs 4 --tensor-parallel-size 2 --dtype bfloat16 --host 0.0.0.0 --port 8000
-```
+- model config file: `starvlm/config/model/<model_name>.yaml`
 
-## Concept Introduction
-
-StarFlow consists of four types of components: datasets, metrics, models, and pipelines.
-
-### Datasets
-
-Datasets provide vision-language data for training and evaluation. They are encapsulated as sub-classes of [`VLDataset`](starflow/dataset/base.py). For example, the `BigDocs` datasets are encapsulated as [`BigDocsDataset`](starflow/dataset/bigdocs.py).
-
-When instantiating a dataset, its data examples are first loaded from either Hugging Face or local storage, and then encapsulated as [`VLExample`](starflow/dataset/base.py).
-
-Each dataset comes with a config file, which specifies the settings for instantiating and using the dataset. For example, the config file for `ServiceNow/BigDocs-Sketch2Flow` is [`starflow/config/dataset/bigdocs_sketch2flow.yaml`](starflow/config/dataset/bigdocs_sketch2flow.yaml).
-
-### Metrics
-
-Metrics compute performance numbers of models on datasets. They are encapsulated as sub-classes of [`VLMetric`](starflow/dataset/metric/base.py). For example, the `Flow Similarity` metric is encapsulated as [`FlowSimilarityMetric`](starflow/dataset/metric/flow_similarity.py).
-
-When using a metric to evaluate a model on a dataset, the metric compares the outputs of the model with the corresponding ground truths in the dataset and thereby obtains the performance numbers.
-
-Each metric is applied to one or more datasets, and the settings for instantiating and using the metric are specifed in the config files of the target datasets. For example, the settings for `FlowSimilarityMetric` are specified in the config file of `ServiceNow/BigDocs-Sketch2Flow` ([`starflow/config/dataset/bigdocs_sketch2flow.yaml`](starflow/config/dataset/bigdocs_sketch2flow.yaml)).
-
-### Models
-
-Models generate textual outputs given vision-language inputs from datasets. They are encapsulated as sub-classes of [`VLModel`](starflow/model/base.py), and their inputs are encapsulated as sub-classes of [`VLInput`](starflow/model/base.py). For example, the `Llama-3.2-Vision-Instruct` models are encapsulated as [`LlamaModel`](starflow/model/llama_32.py), and their inputs are encapsulated as [`LlamaInput`](starflow/model/llama_32.py).
-
-When training a model, a cross-entropy loss is obtained from the forward pass of the model, which is then optimized in the backward pass through gradient decent. When evaluating a model, the textual outputs of the model are processed by the applied metrics to compute performance numbers.
-
-Each model comes with a config file, which specifies the settings for instantiating and using the model. For example, the config file for `Llama-3.2-11B-Vision-Instruct` is [`starflow/config/model/llama_32_11b.yaml`](starflow/config/model/llama_32_11b.yaml).
-
-A special category of models is API models, which can only be used through API calls. They are encapsulated as sub-classes of [`VLAPIModel`](starflow/model/base.py), and each of them comes with a config file. For example, the OpenAI's `GPT-4o` model is encapsulated as [`OpenAIModel`](starflow/model/openai.py), and its config file is [`starflow/config/model/gpt_4o.yaml`](starflow/config/model/gpt_4o.yaml). API models cannot be trained, but can still be evaluated.
-
-### Pipelines
-
-Pipelines are Python scripts that execute complete processes with datasets, metrics, and models. There are three pipelines, each of with comes with a config file:
-
-- Training pipeline: the pipeline for training a model on a dataset. It is implemented as [`starflow/pipeline/train.py`](starflow/pipeline/train.py), and its config file is [`starflow/config/pipeline/train.yaml`](starflow/config/pipeline/train.yaml).
-
-- Evaluation pipeline: the pipeline for evaluating a model on a dataset with the applied metrics. It is implemented as [`starflow/pipeline/evaluate.py`](starflow/pipeline/evaluate.py), and its config file is [`starflow/config/pipeline/evaluate.yaml`](starflow/config/pipeline/evaluate.yaml).
-
-- API model evaluation pipeline: the pipeline for evaluating an API model on a dataset with the applied metrics. It is implemented as [`starflow/pipeline/evaluate_api.py`](starflow/pipeline/evaluate_api.py), and its config file is [`starflow/config/pipeline/evaluate_api.yaml`](starflow/config/pipeline/evaluate_api.yaml).
+- dataset config file: `starvlm/config/dataset/<dataset_name>.yaml`
 
 ## Citation
 

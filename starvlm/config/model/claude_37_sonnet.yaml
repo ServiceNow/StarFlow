@@ -1,0 +1,8 @@
+class_path: starvlm.model.openai.OpenAIModel
+init_kwargs:
+  base_url: https://openrouter.ai/api/v1
+  model_path: anthropic/claude-3.7-sonnet
+  generate_kwargs:
+    max_tokens: 8192
+    temperature: 0.0
+coordinates_adapter: null

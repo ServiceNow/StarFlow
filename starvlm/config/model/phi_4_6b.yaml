@@ -1,0 +1,15 @@
+class_path: starvlm.model.phi_4.PhiModel
+init_kwargs:
+  model_path: microsoft/Phi-4-multimodal-instruct
+  torch_dtype: bfloat16
+  attn_implementation: flash_attention_2
+  ignore_index: -100
+  max_length: 8192
+  requires_grad_kwargs:
+    language_model_requires_grad: true
+    vision_model_requires_grad: true
+    connector_requires_grad: true
+  generate_kwargs:
+    max_new_tokens: 8192
+    do_sample: false
+coordinates_adapter: null

@@ -1,11 +1,12 @@
 accelerate
-attrdict==2.0.1
+attrdict
 backoff
 beautifulsoup4
 CairoSVG
 datasets
 editdistance
 htmlmin
+hydra-core
 lxml
 nltk
 omegaconf
@@ -15,7 +16,7 @@ pydot
 scikit-learn
 scipy
 timeout-decorator
-timm==1.0.15
+timm
 torchmetrics
 tqdm
 transformers==4.38.2

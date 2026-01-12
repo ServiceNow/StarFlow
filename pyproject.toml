@@ -3,9 +3,9 @@ requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "StarFlow"
+name = "StarVLM"
 version = "1.0.0"
 requires-python = ">=3.11, <3.12"
 
 [tool.setuptools.packages.find]
-include = ["starflow*"]
+include = ["starvlm*"]

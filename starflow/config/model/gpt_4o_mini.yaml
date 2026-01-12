@@ -1,9 +1,0 @@
-model:
-  name: gpt_4o_mini
-  class_path: starflow.model.openai.OpenAIModel
-  init_kwargs:
-    base_url: https://openrouter.ai/api/v1
-    model_path: openai/gpt-4o-mini
-    generate_kwargs:
-      max_tokens: 8192
-      temperature: 0.0
