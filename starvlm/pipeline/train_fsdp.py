@@ -41,9 +41,7 @@ def train(pipeline_name: str, model_name: str, dataset_names: list[str]) -> None
         {
             "pipeline": f"pipeline/{pipeline_name}",
             "model": f"model/{model_name}",
-            "datasets": ",".join(
-                f"dataset/{dataset_name}" for dataset_name in dataset_names
-            ),
+            "datasets": [f"dataset/{dataset_name}" for dataset_name in dataset_names],
         }
     )
     logging_dir = get_logging_dir(

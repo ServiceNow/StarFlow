@@ -6,7 +6,7 @@ from hashlib import md5
 from hydra import compose, initialize_config_dir
 from omegaconf import OmegaConf
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Optional, Union
 from uuid import uuid4
 from starvlm.dataset.base import VLDataset, VLExample
 from starvlm.dataset.metric.base import VLMetric
@@ -37,29 +37,39 @@ class LossMeter:
         self.average = 0.0
 
 
-def get_config_by_composition(composition_spec: dict[str, str]) -> dict[str, Any]:
+def get_config_by_composition(
+    composition_spec: dict[str, Union[str, list[str]]],
+) -> dict[str, Any]:
     tmp_field = f"tmp_{uuid4().hex}"
     overrides = []
     for mount_path, config_path in composition_spec.items():
         mount_path = mount_path.strip()
         if not mount_path:
             raise ValueError("mount_path cannot be empty")
-        config_path = config_path.strip()
-        if not config_path:
-            raise ValueError("config_path cannot be empty")
-        if "," in config_path:
-            parts = [part.strip() for part in config_path.split(",")]
-            if not all(parts):
+        if isinstance(config_path, str):
+            config_path = config_path.strip()
+            if not config_path:
+                raise ValueError("config_path cannot be empty")
+            try:
+                group_path, config_name = divide_path(config_path, "/")
+            except ValueError as e:
                 raise ValueError(
-                    f"config_path '{config_path}' cannot be split by ',' without producing empty part(s)"
-                )
+                    f"config_path '{config_path}' cannot be divided into group_path and config_name"
+                ) from e
+            overrides.append(f"+{group_path}@{mount_path}={config_name}")
+        elif isinstance(config_path, list):
             tmp_mount_paths = []
-            for index, part in enumerate(parts):
+            for index, item in enumerate(config_path):
+                item = item.strip()
+                if not item:
+                    raise ValueError(
+                        f"item '{item}' at index '{index}' in config_path '{config_path}' cannot be empty"
+                    ) from e
                 try:
-                    group_path, config_name = divide_path(part, "/")
+                    group_path, config_name = divide_path(item, "/")
                 except ValueError as e:
                     raise ValueError(
-                        f"part '{part}' at index '{index}' in config_path '{config_path}' cannot be divided into group_path and config_name"
+                        f"item '{item}' at index '{index}' in config_path '{config_path}' cannot be divided into group_path and config_name"
                     ) from e
                 tmp_mount_path = f"{tmp_field}.{mount_path}.{index}"
                 overrides.append(f"+{group_path}@{tmp_mount_path}={config_name}")
@@ -69,13 +79,9 @@ def get_config_by_composition(composition_spec: dict[str, str]) -> dict[str, Any
             )
             overrides.append(f"+{mount_path}=[{mount_reference}]")
         else:
-            try:
-                group_path, config_name = divide_path(config_path, "/")
-            except ValueError as e:
-                raise ValueError(
-                    f"config_path '{config_path}' cannot be divided into group_path and config_name"
-                ) from e
-            overrides.append(f"+{group_path}@{mount_path}={config_name}")
+            raise TypeError(
+                f"type of config_path must be str or list, got {type(config_path).__name__}"
+            )
     config_root = Path(__file__).resolve().parent.parent.joinpath("config")
     if not config_root.is_dir():
         raise ValueError(f"config_root '{config_root}' is not valid directory")
