@@ -30,12 +30,14 @@ Three pipelines are implemented:
 
 ## Environment Setup
 
+### Commands
+
 1. Edit `~/.secret` (create it if missing)
 
 ```shell
-export HF_TOKEN=<HF_TOKEN>
-export WANDB_API_KEY=<WANDB_API_KEY>
-export OPENAI_API_KEY=<OPENAI_API_KEY>
+export HF_TOKEN=<YOUR_HF_TOKEN>
+export WANDB_API_KEY=<YOUR_WANDB_API_KEY>
+export OPENAI_API_KEY=<YOUR_OPENAI_API_KEY>
 ...
 ```
 
@@ -43,6 +45,10 @@ export OPENAI_API_KEY=<OPENAI_API_KEY>
 
 ```shell
 source ~/.secret
+# home directory of venvs
+export UV_HOME=<PATH_TO_UV_HOME>
+# root directory of logs
+export LOGGING_ROOT=<PATH_TO_LOGGING_ROOT>
 ...
 ```
 
@@ -51,17 +57,31 @@ source ~/.secret
 ```shell
 git clone https://github.com/ServiceNow/StarFlow.git
 cd StarFlow
-# for Llama, Qwen, Gemma, Pixtral, and API models
+# default installer (for API models and most local models)
 bash installer/default/install.sh
-# for Phi-3.5 model
+# phi35 installer (for Phi-3.5 local model)
 bash installer/phi35/install.sh
-# for Phi-4 model
+# phi4 installer (for Phi-4 local model)
 bash installer/phi4/install.sh
-# for DeepSeek-VL2 model
+# deepseek installer (for DeepSeek-VL2 local models)
 bash installer/deepseek/install.sh
-# for vLLM-served API models
+# vllm installer (for vLLM-served API models)
 bash installer/vllm/install.sh
 ```
+
+### Notes
+
+Activate a proper venv to conduct experiments:
+
+- venv created by default installer: `${UV_HOME}/starvlm_default`
+
+- venv created by phi35 installer: `${UV_HOME}/starvlm_phi35`
+
+- venv created by phi4 installer: `${UV_HOME}/starvlm_phi4`
+
+- venv created by deepseek installer: `${UV_HOME}/starvlm_deepseek`
+
+- venv created by vllm installer: `${UV_HOME}/starvlm_vllm`
 
 ## Experiment Guide
 
